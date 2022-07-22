@@ -186,7 +186,7 @@ async function main() {
 	while (1) {
 		console.clear();
 		console.log('\n');
-		console.log(chalk.green('	Factorio Online Mod Updater'));
+		console.log(chalk.green('	Factorio Mod Updater'));
 		console.log('\n');
 		await inquirer.prompt([
 			{
