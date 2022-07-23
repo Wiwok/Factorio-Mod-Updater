@@ -15,6 +15,7 @@ async function download(url, targetFile) {
 			}
 			const fileWriter = fs.createWriteStream(targetFile)
 				.on('finish', () => {
+					clearInterval(interval);
 					clearLastLine();
 					resolve({});
 				});
@@ -22,12 +23,12 @@ async function download(url, targetFile) {
 			const fileSizeMo = (fileSize / 1000000).toFixed(2);
 			const downloadSize = fileWriter.bytesWritten;
 			console.log(`Downloading... ${(downloadSize / 1000000).toFixed(2)}Mo / ${(fileSize / 1000000).toFixed(2)}Mo [${((downloadSize / fileSize) * 100).toFixed(2)}%]`);
-			response.on('data', () => {
+			const interval = setInterval(() => {
 				const downloadedSize = fileWriter.bytesWritten;
 				const message = `Downloading... ${(fileWriter.bytesWritten / 1000000).toFixed(2)}Mo / ${fileSizeMo}Mo [${((downloadedSize / fileSize) * 100).toFixed(2)}%]`;
 				clearLastLine();
 				console.log(message);
-			});
+			}, 50);
 			response.pipe(fileWriter);
 		}).on('error', error => {
 			reject(error);
