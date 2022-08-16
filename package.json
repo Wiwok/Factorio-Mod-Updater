@@ -4,7 +4,8 @@
 	"description": "This is a tool made to update your factorio mods.",
 	"main": "index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"start": "node --no-warnings ./index.js ",
+		"pkg": "pkg --compress GZip --options no-warnings index.js"
 	},
 	"author": "Wiwok",
 	"license": "ISC",

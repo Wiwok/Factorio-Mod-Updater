@@ -57,13 +57,10 @@ async function uninstall() {
 }
 
 async function URLverification() {
-	let validURL = false;
 	if (fs.existsSync(path.resolve(process.env.APPDATA + '/Factorio Mod Updater/config.json'))) {
-		process.dbsite = JSON.parse(fs.readFileSync(process.env.APPDATA + '/Factorio Mod Updater/config.json'));
+		process.dbSite = JSON.parse(fs.readFileSync(process.env.APPDATA + '/Factorio Mod Updater/config.json'));
 	} else {
-		process.dbsite = '';
-	}
-	if (process.dbsite == '') {
+		let validURL = false;
 		console.log('\n');
 		console.log(chalk.red('Error, the site that provides the mods is not defined.'));
 		while (!validURL) {
@@ -83,10 +80,12 @@ async function URLverification() {
 				}
 			]).then(async answers => {
 				console.log('Testing the given site...');
+				let URL = answers.dbSite;
+				if (URL.endsWith('/')) URL = URL.substring(0, URL.length - 1);
 				try {
-					await download(answers.dbSite + '/flib/0.10.1.zip', process.env.APPDATA + '/Factorio Mod Updater/mods/test.zip');
+					await download(URL + '/flib/0.10.1.zip', process.env.APPDATA + '/Factorio Mod Updater/mods/test.zip');
 					fs.unlinkSync(process.env.APPDATA + '/Factorio Mod Updater/mods/test.zip');
-					fs.writeFileSync(process.env.APPDATA + '/Factorio Mod Updater/config.json', JSON.stringify(answers.dbSite));
+					fs.writeFileSync(process.env.APPDATA + '/Factorio Mod Updater/config.json', JSON.stringify(URL));
 					console.log(chalk.green('Success !'));
 					console.log('The URL is valid.');
 					validURL = true;
@@ -110,7 +109,7 @@ async function ask() {
 				if (value.length) {
 					return true;
 				} else {
-					return 'Please enter a valid mod name';
+					return 'Please enter a mod name';
 				}
 			}
 		}
@@ -166,9 +165,7 @@ async function ask() {
 					return;
 				}
 				try {
-					console.log(`
-${chalk.bgGray(chalk.black(mod.description))}
-`);
+					console.log('\n' + chalk.bgGray(chalk.black(mod.description)) + '\n');
 					await install(mod, dataLocation);
 				} catch (err) {
 					console.log('\n' + chalk.yellow('Oops, an error occured:\n') + err);
@@ -182,8 +179,8 @@ ${chalk.bgGray(chalk.black(mod.description))}
 
 
 async function main() {
-	// eslint-disable-next-line no-constant-condition
-	while (1) {
+	let quit = false;
+	while (!quit) {
 		console.clear();
 		console.log('\n');
 		console.log(chalk.green('	Factorio Mod Updater'));
@@ -214,14 +211,17 @@ async function main() {
 				console.log('\n');
 				await uninstall();
 			} else {
-				console.clear();
-				process.exit();
+				quit = true;
 			}
 		});
-		console.log('\n');
-		prompt('Press enter to continue...');
+		if (!quit) {
+			console.log('\n');
+			prompt('Press enter to continue...');
+		}
 	}
+	console.clear();
+	process.exit();
 }
 
-
+console.clear();
 URLverification().then(() => main());

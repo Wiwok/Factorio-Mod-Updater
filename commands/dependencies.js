@@ -1,7 +1,7 @@
 const chalk = require('chalk');
+const inquirer = require('inquirer');
 const fs = require('fs');
 const path = require('path');
-const inquirer = require('inquirer');
 
 const { fetchMod } = require('../functions/fetchMod');
 const { install } = require('../functions/install');
@@ -11,7 +11,8 @@ const dataLocation = path.resolve(process.env.APPDATA + '/Factorio Mod Updater/'
 
 
 async function dependencies(mod) {
-	const Dep = JSON.parse(fs.readFileSync(process.env.APPDATA + '/Factorio/mods/' + mod.rawName + '/info.json')).dependencies;
+	const Dep = JSON.parse(fs.readFileSync(path.resolve(process.env.APPDATA + '/Factorio/mods/' + mod.rawName + '/info.json'))).dependencies;
+	if (typeof Dep == 'undefined') return;
 	let RequireDependencies = [];
 	let OptionalDependencies = [];
 	let ConflictDependencies = [];
@@ -153,10 +154,12 @@ async function dependencies(mod) {
 		console.log('Fetching dependencies [6/6] (' + (RequireDependencies.length + OptionalDependencies.length) + '/' + (RequireDependencies.length + OptionalDependencies.length) + ')');
 	}
 
+	const installs = [];
+
 	if (FetchedRequireDependencies.length > 0) {
 		clearLastLine();
 		console.log(chalk.red('Required') + (FetchedRequireDependencies.length == 1 ? ' dependency aren\'t installed.' : ' dependencies aren\'t installed.'));
-		await inquirer.prompt([
+		const answers = await inquirer.prompt([
 			{
 				type: 'checkbox',
 				name: 'required',
@@ -168,25 +171,17 @@ async function dependencies(mod) {
 					};
 				})
 			}
-		]).then(async answers => {
-			clearLastLine(2);
-			if (answers.required.length == 0) return;
-			for await (const Mod of answers.required) {
-				try {
-					await install(Mod, dataLocation);
-				} catch (err) {
-					console.log('\n' + chalk.yellow('Oops, an error occured:\n') + err);
-					return;
-				}
-			}
-		});
+		]);
+
+		clearLastLine(2);
+		installs.push(answers.required);
 	}
 
-	if (FetchedOptionalDependencies.length != 0) {
+	if (FetchedOptionalDependencies.length > 0) {
 		clearLastLine();
 		console.log((FetchedOptionalDependencies.length == 1 ? chalk.yellow('Optional') + ' dependency aren\'t installed.' : chalk.yellow('Optionals') + ' dependencies aren\'t installed.'));
 
-		await inquirer.prompt([
+		const answers = await inquirer.prompt([
 			{
 				type: 'checkbox',
 				name: 'optional',
@@ -198,21 +193,20 @@ async function dependencies(mod) {
 					};
 				})
 			}
-		]).then(async answers => {
-			clearLastLine(2);
-			if (answers.optional.length == 0) return;
-			for await (const Mod of answers.optional) {
-				try {
-					install(Mod, dataLocation);
-				} catch (err) {
-					console.log('\n' + chalk.yellow('Oops, an error occured:\n') + err);
-					return;
-				}
-				console.log(chalk.green(Mod.name) + ' installed!');
-			}
-		});
+		]);
+
+		clearLastLine(2);
+		installs.push(answers.optional);
 	}
 
+	for await (const Mod of installs) {
+		try {
+			await install(Mod, dataLocation);
+		} catch (err) {
+			console.log('\n' + chalk.yellow('Oops, an error occured:\n') + err);
+			return;
+		}
+	}
 }
 
 module.exports = { dependencies };

@@ -1,15 +1,15 @@
-const { download } = require('./download');
-const { unzip } = require('./unzip');
-const { dependencies } = require('../commands/dependencies');
-const { clearLastLine } = require('./clearLastLine');
-
 const fs = require('fs');
 const fse = require('fs-extra');
 const path = require('path');
 const del = require('del');
 
+const { download } = require('./download');
+const { unzip } = require('./unzip');
+const { dependencies } = require('../commands/dependencies');
+const { clearLastLine } = require('./clearLastLine');
+
 async function install(Mod, dataLocation, prefix) {
-	const dbSite = process.dbsite;
+	const dbSite = process.dbSite;
 	if (typeof prefix == 'undefined') {
 		prefix = '';
 	} else {
