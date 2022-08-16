@@ -35,23 +35,46 @@ async function uninstall() {
 			name: 'uninstall',
 			message: 'Enter the name of the mod you want to uninstall:',
 			validate: value => {
-				if (value.includes(' ')) {
-					return 'Mod name cannot contain spaces.';
-				} else if (value.length) {
+				if (value.length) {
 					return true;
 				} else {
-					return 'Please enter a valid mod name';
+					return 'Please enter a mod name';
 				}
 			}
 		}
 	]).then(async answers => {
 		const modName = answers.uninstall;
 		const modPath = process.env.APPDATA + '/factorio/mods/' + modName + '/';
+		const mods = [];
+		const modsName = [];
+		fs.readdirSync(path.resolve(process.env.APPDATA + '/factorio/mods/')).forEach(mod => {
+			if (fs.lstatSync(path.resolve(process.env.APPDATA + '/factorio/mods/' + mod)).isFile()) return;
+			const infos = JSON.parse(fs.readFileSync(path.resolve(process.env.APPDATA + '/factorio/mods/' + mod + '/info.json')));
+			mods.push(infos);
+			modsName.push(infos.title);
+		});
 		if (fs.existsSync(modPath)) {
 			del.sync(modPath, { force: true });
 			console.log(chalk.green('Mod uninstalled successfully.'));
 		} else {
-			console.log(chalk.yellow('This mod isn\'t installed.'));
+			const modIndex = modsName.findIndex(e => e.includes(modName));
+			if (modIndex == -1) {
+				console.log(chalk.yellow('Mod not found.'));
+			} else {
+				await inquirer.prompt([
+					{
+						type: 'confirm',
+						name: 'uninstallConfirm',
+						message: 'Do you want to uninstall ' + chalk.green(modsName[modIndex]) + '?'
+					}
+				]).then(async a => {
+					if (!a.uninstallConfirm) return;
+					const mod = mods[modIndex].name;
+					del.sync(path.resolve(process.env.APPDATA + '/factorio/mods/' + mod + '/'), { force: true });
+					console.log(chalk.green('Mod uninstalled successfully.'));
+				});
+
+			}
 		}
 	});
 }
