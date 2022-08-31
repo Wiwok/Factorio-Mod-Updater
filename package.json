@@ -4,7 +4,7 @@
 	"description": "This is a tool made to update your factorio mods.",
 	"main": "index.js",
 	"scripts": {
-		"pkg": "pkg --compress GZip"
+		"pkg": "pkg --compress GZip index.js"
 	},
 	"author": "Wiwok",
 	"license": "ISC",
