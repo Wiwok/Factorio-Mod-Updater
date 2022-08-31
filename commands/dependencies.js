@@ -75,12 +75,12 @@ async function dependencies() {
 	const modsName = [];
 	const modList = fs.readdirSync(path.resolve(process.env.APPDATA + '/factorio/mods/'));
 	for await (const mod of modList) {
-		if (fs.lstatSync(path.resolve(process.env.APPDATA + '/factorio/mods/' + mod)).isFile()) return;
-		const infos = JSON.parse(fs.readFileSync(path.resolve(process.env.APPDATA + '/factorio/mods/' + mod + '/info.json')));
-		mods.push(infos);
-		modsName.push(infos.title);
+		if (!fs.lstatSync(path.resolve(process.env.APPDATA + '/factorio/mods/' + mod)).isFile()) {
+			const infos = JSON.parse(fs.readFileSync(path.resolve(process.env.APPDATA + '/factorio/mods/' + mod + '/info.json')));
+			mods.push(infos);
+			modsName.push(infos.title);
+		}
 	}
-
 	for await (const mod of mods) {
 		if (typeof mod == 'undefined') return;
 		const RequireDependencies = [];
