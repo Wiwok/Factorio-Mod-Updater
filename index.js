@@ -13,6 +13,8 @@ const { search } = require('./functions/search');
 const { install } = require('./functions/install');
 const { download } = require('./functions/download');
 
+const { dependencies } = require('./commands/dependencies');
+
 if (!fs.existsSync(process.env.APPDATA + '/Factorio Mod Updater/')) {
 	fs.mkdirSync(process.env.APPDATA + '/Factorio Mod Updater/');
 	fs.writeFileSync(process.env.APPDATA + '/Factorio Mod Updater/config.json', {});
@@ -187,13 +189,7 @@ async function ask() {
 					console.log(chalk.red('\nMod already installed.\n'));
 					return;
 				}
-				try {
-					console.log('\n' + chalk.bgGray(chalk.black(mod.description)) + '\n');
-					await install(mod, dataLocation);
-				} catch (err) {
-					console.log('\n' + chalk.yellow('Oops, an error occured:\n') + err);
-					return;
-				}
+				await install(mod, dataLocation);
 				console.log(chalk.green(mod.name) + ' installed!');
 			}
 		});
@@ -216,6 +212,7 @@ async function main() {
 				choices: [
 					'Install a mod',
 					'Update my mods',
+					'Check dependencies',
 					'Uninstall a mod',
 					'Exit'
 				]
@@ -229,6 +226,10 @@ async function main() {
 				console.clear();
 				console.log('\n');
 				await update();
+			} else if (answers.type == 'Check dependencies') {
+				console.clear();
+				console.log('\n');
+				await dependencies();
 			} else if (answers.type == 'Uninstall a mod') {
 				console.clear();
 				console.log('\n');
@@ -247,4 +248,6 @@ async function main() {
 }
 
 console.clear();
-URLverification().then(() => main());
+(async () => {
+	await URLverification().then(async () => await main());
+})();

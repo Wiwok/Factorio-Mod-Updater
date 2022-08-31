@@ -15,12 +15,12 @@ async function fetchMod(modName) {
 			return false;
 		});
 	} catch (err) {
-		return fetchMod(modName);
+		return null;
 	}
 
-	if (!html) { return fetchMod(modName); }
+	if (!html) return null;
 
-	if (typeof html == 'undefined') { return fetchMod(modName); }
+	if (typeof html == 'undefined') return null;
 
 	const $ = cheerio.load(html);
 	let infoList = [];

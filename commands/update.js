@@ -19,7 +19,8 @@ async function update() {
 	mods = mods.filter(mod => !mod.includes('.'));
 
 	const modsList = [];
-	for (let i = 0; i < mods.length; i++) {
+	let i = 0;
+	for await (const mod of mods) {
 		console.clear();
 		console.log(`
 		
@@ -27,49 +28,44 @@ ${chalk.green('	Checking updates for ' + mods.length + ' mods...')}
 
 
 Fetching mod ${i + 1} of ${mods.length}`);
-		modsList[i] = await fetchMod(mods[i]);
-		if (!modsList[i]) { return; }
-	}
-	const actualMods = [];
-	for (let i = 0; i < mods.length; i++) {
-		actualMods[i] = JSON.parse(fs.readFileSync(path.resolve(appdata + '/Factorio/mods/' + mods[i] + '/info.json'), 'utf8'));
+		i++;
+		await fetchMod(mod).then(m => {
+			if (m) {
+				m.oldVersion = JSON.parse(fs.readFileSync(path.resolve(appdata + '/factorio/mods/' + mod + '/info.json'))).version;
+				modsList.push(m);
+			}
+		});
 	}
 
 	const updates = [];
-
-	for (let i = 0; i < mods.length; i++) {
-		if (actualMods[i].version != modsList[i].version) {
-			updates.push(modsList[i]);
-			updates.push(actualMods[i]);
-		}
+	for await (const mod of modsList) {
+		if (mod.oldVersion != mod.version) updates.push(mod);
 	}
 	console.clear();
-	if (updates.length == 0) {
+	if (!updates.length) {
 		console.log(chalk.green('\n\n	No updates found.'));
 		return;
 	}
 	if (updates.length == 1) {
 		console.log(chalk.green('\n	Found 1 update:'));
 	} else {
-		console.log(chalk.green('\n	Found ' + updates.length / 2 + ' updates: \n'));
+		console.log(chalk.green('\n	Found ' + updates.length + ' updates: \n'));
 	}
-	for (let i = 0; i < updates.length; i += 2) {
-		console.log(chalk.magenta(updates[i].name) + ': ' + chalk.yellow(updates[i + 1].version) + ' -> ' + chalk.blueBright(updates[i].version) + '\n');
-	}
+	updates.forEach(mod => {
+		console.log(console.log(chalk.magenta(mod.name) + ': ' + chalk.yellow(mod.oldVersion) + ' -> ' + chalk.blueBright(mod.oldVersion) + '\n'));
+	});
 	await inquirer.prompt([
 		{
 			type: 'checkbox',
 			name: 'update',
 			message: 'Which of them do you want to install?',
 			choices: () => {
-				const Mods = [];
-				for (let i = 0; i < updates.length; i += 2) {
-					Mods.push({
-						name: updates[i].name,
-						value: updates[i]
-					});
-				}
-				return Mods;
+				return updates.map(u => {
+					return {
+						name: u.name,
+						value: u
+					};
+				});
 			}
 		}
 	]).then(async answers => {
@@ -77,10 +73,10 @@ Fetching mod ${i + 1} of ${mods.length}`);
 		if (Update.length == 0) return;
 		try {
 			console.log(chalk.green('\n	Updating mods...\n'));
-			let i = 0;
+			let j = 0;
 			for await (const mod of Update) {
-				i++;
-				await install(mod, dataLocation, `[${i}/${Update.length}]`);
+				j++;
+				await install(mod, dataLocation, `[${j}/${Update.length}]`);
 			}
 		} catch (err) {
 			console.log('\n' + chalk.yellow('Oops, an error occured: ') + err);
