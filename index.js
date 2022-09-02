@@ -67,7 +67,8 @@ async function uninstall() {
 					{
 						type: 'confirm',
 						name: 'uninstallConfirm',
-						message: 'Do you want to uninstall ' + chalk.green(modsName[modIndex]) + '?'
+						message: 'Do you want to uninstall ' + chalk.green(modsName[modIndex]) + '?',
+						default: true
 					}
 				]).then(async a => {
 					if (!a.uninstallConfirm) return;

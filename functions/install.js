@@ -15,6 +15,8 @@ async function install(Mod, dataLocation, prefix) {
 		prefix += ' ';
 	}
 
+	del.sync(dataLocation + '/mods', { force: true });
+	fs.mkdirSync(dataLocation + '/mods');
 	console.log(prefix + 'Downloading ' + Mod.name + ' [1/5]');
 	await download(`${dbSite}/${Mod.rawName}/${Mod.version}.zip`, dataLocation + '/downloads/' + Mod.rawName + '.zip');
 	clearLastLine();
@@ -25,7 +27,8 @@ async function install(Mod, dataLocation, prefix) {
 	fs.unlinkSync(dataLocation + '/downloads/' + Mod.rawName + '.zip');
 	fs.renameSync(path.resolve(dataLocation + '/mods/' + fs.readdirSync(dataLocation + '/mods/')[0]), path.resolve(dataLocation + '/mods/' + Mod.rawName));
 	del.sync(process.env.APPDATA + '/factorio/mods/' + Mod.rawName + '/', { force: true });
-	fs.mkdirSync(process.env.APPDATA + '/factorio/mods/' + Mod.rawName + '/');
+	const data = JSON.parse(fs.readFileSync(path.resolve(dataLocation + '/mods/' + fs.readdirSync(dataLocation + '/mods/')[0]) + '/info.json'));
+	fs.mkdirSync(process.env.APPDATA + '/factorio/mods/' + data.name + '/');
 	clearLastLine();
 	console.log(prefix + 'Installing ' + Mod.name + ' [4/5]');
 	fse.copySync(path.resolve(dataLocation + '/mods/' + Mod.rawName + '/'), process.env.APPDATA + '/factorio/mods/' + Mod.rawName + '/');

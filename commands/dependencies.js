@@ -81,116 +81,131 @@ async function dependencies() {
 			modsName.push(infos.title);
 		}
 	}
-	for await (const mod of mods) {
-		if (typeof mod == 'undefined') return;
-		const RequireDependencies = [];
-		const OptionalDependencies = [];
-		let ConflictDependencies = [];
-		for await (const dependency of mod.dependencies) {
-			const dep = dependency.split(' >=');
-			const modName = Array.from(dep[0]);
-			if (modName[0] == '!') {
-				modName.shift();
-				if (modName[0] == ' ') modName.shift();
-				dep[0] = modName.join('');
-				ConflictDependencies.push(dep);
-			} else if (modName[0] == '~') {
-				modName.shift();
-				if (modName[0] == ' ') modName.shift();
-				dep[0] = modName.join('');
-				RequireDependencies.push(dep);
-			} else if (modName[0] == '?') {
-				modName.shift();
-				if (modName[0] == ' ') modName.shift();
-				dep[0] = modName.join('');
-				OptionalDependencies.push(dep);
-			} else if (modName.join('').startsWith('(?)')) {
-				modName.shift();
-				modName.shift();
-				modName.shift();
-				if (modName[0] == ' ') modName.shift();
-				dep[0] = modName.join('');
-				OptionalDependencies.push(dep);
-			} else {
-				RequireDependencies.push(dep);
-			}
+
+	await inquirer.prompt([
+		{
+			type: 'confirm',
+			name: 'optional',
+			message: 'Do you want to check optional dependencies?',
+			default: false
 		}
-
-		ConflictDependencies = ConflictDependencies.map(dependency => {
-			if (fs.existsSync(process.env.APPDATA + '/Factorio/mods/' + dependency + '/info.json')) {
-				const m = JSON.parse(fs.readFileSync(process.env.APPDATA + '/Factorio/mods/mod-list.json')).mods;
-				const myMod = m.find(Mod => {
-					if (Mod?.name == dependency && Mod.enabled) {
-						return Mod;
+	]).then(async Answers => {
+		const DoOptional = Answers.optional;
+		for await (const mod of mods) {
+			if (typeof mod != 'undefined' && typeof mod.dependencies != 'undefined') {
+				const RequireDependencies = [];
+				const OptionalDependencies = [];
+				let ConflictDependencies = [];
+				for await (const dependency of mod.dependencies) {
+					const dep = dependency.split(' >=');
+					const modName = Array.from(dep[0]);
+					if (modName[0] == '!') {
+						modName.shift();
+						if (modName[0] == ' ') modName.shift();
+						dep[0] = modName.join('');
+						ConflictDependencies.push(dep);
+					} else if (modName[0] == '~') {
+						modName.shift();
+						if (modName[0] == ' ') modName.shift();
+						dep[0] = modName.join('');
+						RequireDependencies.push(dep);
+					} else if (modName[0] == '?') {
+						modName.shift();
+						if (modName[0] == ' ') modName.shift();
+						dep[0] = modName.join('');
+						OptionalDependencies.push(dep);
+					} else if (modName.join('').startsWith('(?)')) {
+						modName.shift();
+						modName.shift();
+						modName.shift();
+						if (modName[0] == ' ') modName.shift();
+						dep[0] = modName.join('');
+						OptionalDependencies.push(dep);
+					} else {
+						RequireDependencies.push(dep);
 					}
-				});
-				if (typeof myMod != 'undefined') {
-					return dependency;
 				}
-			}
-		}).filter(dependency => {
-			if (typeof dependency == 'undefined') return;
-			return dependency;
-		});
 
-		if (ConflictDependencies.length) {
-			console.log(chalk.red(ConflictDependencies.length == 1 ? 'Conflicting dependency found.' : 'Conflicting dependencies found.'));
-			await inquirer.prompt([
-				{
-					type: 'checkbox',
-					name: 'conflict',
-					message: 'Which of them do you want to disable?',
-					choices: ConflictDependencies.map(dependency => {
-						return {
-							name: dependency[0],
-							value: dependency[0]
-						};
-					})
-				}
-			]).then(async answers => {
-				clearLastLine(2);
-				if (answers.conflict.length == 0) return;
-
-				const m = JSON.parse(fs.readFileSync(process.env.APPDATA + '/Factorio/mods/mod-list.json')).mods;
-				let i = 0;
-				const Mods = answers.conflict.map(dependency => {
-					return m.map(Mod => {
-						if (Mod?.name == dependency) {
-							Mod.enabled = false;
-							i++;
+				ConflictDependencies = ConflictDependencies.map(dependency => {
+					if (fs.existsSync(process.env.APPDATA + '/Factorio/mods/' + dependency + '/info.json')) {
+						const m = JSON.parse(fs.readFileSync(process.env.APPDATA + '/Factorio/mods/mod-list.json')).mods;
+						const myMod = m.find(Mod => {
+							if (Mod?.name == dependency && Mod.enabled) {
+								return Mod;
+							}
+						});
+						if (typeof myMod != 'undefined') {
+							return dependency;
 						}
-						return Mod;
-					})[0];
+					}
+				}).filter(dependency => {
+					if (typeof dependency == 'undefined') return;
+					return dependency;
 				});
 
-				for (let j = 0; j < i; j++) {
-					Mods.push({
-						name: answers.conflict[0],
-						enabled: false
+				if (ConflictDependencies.length) {
+					console.log(chalk.red(ConflictDependencies.length == 1 ? 'Conflicting dependency found.' : 'Conflicting dependencies found.'));
+					await inquirer.prompt([
+						{
+							type: 'checkbox',
+							name: 'conflict',
+							message: 'Which of them do you want to disable?',
+							choices: ConflictDependencies.map(dependency => {
+								return {
+									name: dependency[0],
+									value: dependency[0]
+								};
+							})
+						}
+					]).then(async answers => {
+						clearLastLine(2);
+						if (answers.conflict.length == 0) return;
+
+						const m = JSON.parse(fs.readFileSync(process.env.APPDATA + '/Factorio/mods/mod-list.json')).mods;
+						let i = 0;
+						const Mods = answers.conflict.map(dependency => {
+							return m.map(Mod => {
+								if (Mod?.name == dependency) {
+									Mod.enabled = false;
+									i++;
+								}
+								return Mod;
+							})[0];
+						});
+
+						for (let j = 0; j < i; j++) {
+							Mods.push({
+								name: answers.conflict[0],
+								enabled: false
+							});
+						}
+
+						fs.writeFileSync(process.env.APPDATA + '/Factorio/mods/mod-list.json', JSON.stringify({ 'mods': Mods }));
 					});
 				}
 
-				fs.writeFileSync(process.env.APPDATA + '/Factorio/mods/mod-list.json', JSON.stringify({ 'mods': Mods }));
-			});
+				const installs = [];
+
+				await fetchDependencies(mod, RequireDependencies, chalk.red('required')).then(async d => {
+					for await (const D of d) {
+						installs.push(D);
+					}
+				});
+
+				if (DoOptional) {
+					await fetchDependencies(mod, OptionalDependencies, chalk.yellow('optional')).then(async d => {
+						for await (const D of d) {
+							installs.push(D);
+						}
+					});
+				}
+
+				await installDeps(installs);
+			}
 		}
-
-		const installs = [];
-
-		await fetchDependencies(mod, RequireDependencies, chalk.red('required')).then(async d => {
-			for await (const D of d) {
-				installs.push(D);
-			}
-		});
-
-		await fetchDependencies(mod, OptionalDependencies, chalk.yellow('optional')).then(async d => {
-			for await (const D of d) {
-				installs.push(D);
-			}
-		});
-
-		await installDeps(installs);
-	}
-	console.log(chalk.green('Done !'));
+		console.log(chalk.green('Done !'));
+	});
 }
+
 
 module.exports = { dependencies };
