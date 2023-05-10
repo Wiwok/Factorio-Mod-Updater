@@ -1,7 +1,9 @@
 import Data from './Functions/DataInteraction';
 
 async function main() {
-	console.log(Data.Installed.getMods());
+	Data.Installed.getMods().forEach(v => {
+		console.log(v.dependencies);
+	});
 }
 
 main();

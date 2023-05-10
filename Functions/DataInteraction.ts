@@ -21,7 +21,7 @@ function getInstalledMods() {
 	fs.readdirSync(DATADIR).forEach(v => {
 		if (fs.lstatSync(DATADIR + v).isDirectory()) {
 			const tempMod = JSON.parse(fs.readFileSync(DATADIR + v + '/info.json').toString());
-			const mod = new Mod(tempMod.name, tempMod.title, tempMod.version, tempMod.author, tempMod.dependencies);
+			const mod = new Mod(tempMod.name, tempMod.title, tempMod.version, tempMod.author, tempMod?.dependencies, tempMod?.description);
 			mods.push(mod);
 		}
 	});
