@@ -4,11 +4,12 @@ import Mod from '../Classes/Mod';
 
 const APPDATA = process.env.APPDATA;
 
+const MODDIR = APPDATA + '/Factorio/mods/';
+
 function getInstalledModsList() {
-	const DATADIR = APPDATA + '/Factorio/mods/';
 	const mods: Array<string> = [];
-	fs.readdirSync(DATADIR).forEach(v => {
-		if (fs.lstatSync(DATADIR + v).isDirectory()) {
+	fs.readdirSync(MODDIR).forEach(v => {
+		if (fs.lstatSync(MODDIR + v).isDirectory()) {
 			mods.push(v);
 		}
 	});
@@ -16,11 +17,10 @@ function getInstalledModsList() {
 }
 
 function getInstalledMods() {
-	const DATADIR = APPDATA + '/Factorio/mods/';
 	const mods: Array<Mod> = [];
-	fs.readdirSync(DATADIR).forEach(v => {
-		if (fs.lstatSync(DATADIR + v).isDirectory()) {
-			const tempMod = JSON.parse(fs.readFileSync(DATADIR + v + '/info.json').toString());
+	fs.readdirSync(MODDIR).forEach(v => {
+		if (fs.lstatSync(MODDIR + v).isDirectory()) {
+			const tempMod = JSON.parse(fs.readFileSync(MODDIR + v + '/info.json').toString());
 			const mod = new Mod(tempMod.name, tempMod.title, tempMod.version, tempMod.author, tempMod?.dependencies, tempMod?.description);
 			mods.push(mod);
 		}
@@ -28,6 +28,9 @@ function getInstalledMods() {
 	return mods;
 }
 
+function Unpack(archive: string) {
+
+}
 
 
 const DataInteraction = {

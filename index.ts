@@ -1,9 +1,7 @@
-import Data from './Functions/DataInteraction';
+import OnlineInteractions from './Functions/OnlineInteractions';
 
 async function main() {
-	Data.Installed.getMods().forEach(v => {
-		console.log(v.dependencies);
-	});
+	OnlineInteractions.downloadMod('alien-biomes', '0.6.8');
 }
 
 main();
