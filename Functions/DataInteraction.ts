@@ -2,18 +2,27 @@ import fs from 'fs';
 
 import Mod from '../Classes/Mod';
 
-const APPDATA = process.env.APPDATA;
+const MODDIR = process.env.APPDATA + '/Factorio/mods/';
+const TEMPDIR = process.env.APPDATA + '/Factorio Mod Updater/';
 
-const MODDIR = APPDATA + '/Factorio/mods/';
+function clearTempDir() {
+	if (fs.existsSync(TEMPDIR)) {
+		fs.rmSync(TEMPDIR, { recursive: true, force: true });
+	}
+	fs.mkdirSync(TEMPDIR);
+	fs.mkdirSync(TEMPDIR + 'mod');
+	fs.mkdirSync(TEMPDIR + 'zip');
+}
 
-function getInstalledModsList() {
+function isModInstalled(name: string) {
 	const mods: Array<string> = [];
 	fs.readdirSync(MODDIR).forEach(v => {
 		if (fs.lstatSync(MODDIR + v).isDirectory()) {
 			mods.push(v);
 		}
 	});
-	return mods;
+
+	return mods.includes(name);
 }
 
 function getInstalledMods() {
@@ -28,15 +37,22 @@ function getInstalledMods() {
 	return mods;
 }
 
-function Unpack(archive: string) {
-
+function fetchInstalledMod(name: string) {
+	if (!fs.existsSync(MODDIR + name)) {
+		console.log('Internal error: Mod not found.');
+		return;
+	}
+	const data = JSON.parse(fs.readFileSync(MODDIR + name + '/info.json').toString());
+	return new Mod(data.name, data.title, data.version, data.author, data?.dependencies);
 }
 
 
 const DataInteraction = {
 	Installed: {
 		getMods: getInstalledMods,
-		getModsList: getInstalledModsList
-	}
+		isInstalled: isModInstalled,
+		fetchMod: fetchInstalledMod
+	},
+	clearTemp: clearTempDir
 };
 export default DataInteraction;
