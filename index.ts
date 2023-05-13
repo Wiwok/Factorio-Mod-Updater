@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 
 import DataInteraction from './Functions/DataInteraction';
-import UserInteration from './Functions/UserInteraction';
-import OnlineInteractions from './Functions/OnlineInteractions';
 import HighLevelActions from './Functions/HighLevelActions';
+import OnlineInteractions from './Functions/OnlineInteractions';
+import UserInteration from './Functions/UserInteraction';
 
 async function Install() {
 	console.clear();

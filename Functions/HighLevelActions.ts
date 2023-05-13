@@ -4,8 +4,8 @@ import fse from 'fs-extra';
 
 import Mod from '../Classes/Mod';
 import ConsoleInteractions from './ConsoleInteractions';
-import OnlineInteractions from './OnlineInteractions';
 import DataInteraction from './DataInteraction';
+import OnlineInteractions from './OnlineInteractions';
 import UserInteration from './UserInteraction';
 
 const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
