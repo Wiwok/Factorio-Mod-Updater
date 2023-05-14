@@ -64,12 +64,21 @@ async function Install() {
 async function Uninstall() {
 	console.clear();
 	console.log(chalk.bgGray('Uninstall a mod') + '\n');
-	const modName = await UserInteration.Prompt('What mod do you want to uninstall?');
-	if (!DataInteraction.Installed.isInstalled(modName)) {
-		console.log(chalk.redBright('Mod not installed'));
+
+	const modList = DataInteraction.Installed.getMods();
+
+	if (modList.length == 0) {
+		console.log(chalk.redBright('No mods found'));
 		UserInteration.GoBackToMenu();
 		return;
 	}
+
+	const choices = modList.map(mod => {
+		return { name: mod.title, value: mod.name };
+	});
+
+	const modName = await UserInteration.Choices('What mod do you want to uninstall?', choices);
+
 	const mod = DataInteraction.Installed.fetchMod(modName);
 	if (typeof mod == 'undefined') {
 		UserInteration.GoBackToMenu();
