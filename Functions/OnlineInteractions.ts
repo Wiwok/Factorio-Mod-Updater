@@ -1,6 +1,7 @@
 import AdmZip from 'adm-zip';
 import axios from 'axios';
 import { load } from 'cheerio';
+import dns from 'dns';
 import fs from 'fs';
 import fse from 'fs-extra';
 import https from 'https';
@@ -114,5 +115,18 @@ async function fetchMod(name: string) {
 	});
 }
 
-const OnlineInteractions = { checkModExist, downloadMod, fetchMod, unzipMod };
+
+async function checkInternet() {
+	return new Promise<boolean>(resolve => {
+		dns.lookup('google.com', err => {
+			if (err && err.code == 'ENOTFOUND') {
+				resolve(false);
+			} else {
+				resolve(true);
+			}
+		});
+	});
+}
+
+const OnlineInteractions = { checkInternet, checkModExist, downloadMod, fetchMod, unzipMod };
 export default OnlineInteractions;

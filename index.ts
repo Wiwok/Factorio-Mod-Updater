@@ -8,6 +8,16 @@ import UserInteration from './Functions/UserInteraction';
 async function Install() {
 	console.clear();
 	console.log(chalk.bgGray('Install a mod') + '\n');
+
+	const isOnline = await OnlineInteractions.checkInternet();
+
+	if (!isOnline) {
+		console.log(chalk.redBright('Please check your internet connection'));
+		UserInteration.GoBackToMenu();
+		return;
+	}
+
+
 	const modName = await UserInteration.Prompt('What mod do you want to install?');
 	if (!await OnlineInteractions.checkModExist(modName)) {
 		console.log(chalk.redBright('Mod not found'));
@@ -84,6 +94,15 @@ async function Uninstall() {
 async function Update() {
 	console.clear();
 	console.log(chalk.bgGray('Update my mods') + '\n');
+
+	const isOnline = await OnlineInteractions.checkInternet();
+
+	if (!isOnline) {
+		console.log(chalk.redBright('Please check your internet connection'));
+		UserInteration.GoBackToMenu();
+		return;
+	}
+
 	await HighLevelActions.UpdateAllMods();
 	UserInteration.GoBackToMenu();
 }
