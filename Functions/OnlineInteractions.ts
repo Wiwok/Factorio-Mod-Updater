@@ -36,6 +36,7 @@ function checkModExist(name: string) {
 async function downloadMod(name: string, version: string) {
 	function ProgressBar(progress: string) {
 		switch (progress) {
+			default: return '[                    ]';
 			case '0': return '[>                   ]';
 			case '1': return '[=>                  ]';
 			case '2': return '[==>                 ]';
