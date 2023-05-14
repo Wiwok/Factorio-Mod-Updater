@@ -9,36 +9,33 @@ type Choice = {
 }
 
 async function Prompt(message: string): Promise<string> {
-	const v = await inquirer.prompt({
+	return (await inquirer.prompt({
 		name: 'prompt',
 		message: message,
 		type: 'input'
-	});
-	return v.prompt;
+	})).prompt;
 }
 
 async function Valid(message: string): Promise<boolean> {
-	const v = await inquirer.prompt({
+	return (await inquirer.prompt({
 		name: 'valid',
 		message: message,
 		type: 'confirm'
-	});
-	return v.valid;
+	})).valid;
 }
 
 async function Choices(message: string, choices: Array<Choice>): Promise<string> {
-	const v = await inquirer.prompt({
+	return (await inquirer.prompt({
 		name: 'list',
 		message: message,
 		choices: choices,
 		type: 'list'
-	});
-	return v.list;
+	})).list;
 }
 
 function GoBackToMenu() {
 	console.log('Press enter to go back to the menu...')
-	UserInteration.Pause();
+	Pause();
 }
 
 function Pause() {
