@@ -5,6 +5,8 @@ import HighLevelActions from './Functions/HighLevelActions';
 import OnlineInteractions from './Functions/OnlineInteractions';
 import UserInteration from './Functions/UserInteraction';
 
+const APPV = '2.1.0';
+
 async function Install() {
 	console.clear();
 	console.log(chalk.bgGray('Install a mod') + '\n');
@@ -116,19 +118,29 @@ async function Update() {
 	UserInteration.GoBackToMenu();
 }
 
+function About() {
+	console.clear();
+	console.log(chalk.bgGray('Factorio Mod Updater') + '\n');
+	console.log('Maintained by ' + chalk.bold('Wiwok'));
+	console.log('Version: ' + APPV);
+	UserInteration.GoBackToMenu();
+}
+
 async function main() {
 	let exit = false;
 	while (!exit) {
 		console.clear();
 		console.log('Welcome to ' + chalk.bgGray('Factorio Mod Updater') + '\n');
 
-		const nav = await UserInteration.Choices('What do you want to do ?', [{ name: 'Install a mod', value: 'install' }, { name: 'Update my mods', value: 'update' }, { name: 'Uninstall a mod', value: 'uninstall' }, { name: 'Quit', value: 'exit' }]);
+		const nav = await UserInteration.Choices('What do you want to do ?', [{ name: 'Install a mod', value: 'install' }, { name: 'Update my mods', value: 'update' }, { name: 'Uninstall a mod', value: 'uninstall' }, { name: 'About', value: 'about' }, { name: 'Quit', value: 'exit' }]);
 		if (nav == 'install') {
 			await Install();
 		} else if (nav == 'update') {
 			await Update();
 		} else if (nav == 'uninstall') {
 			await Uninstall();
+		} else if (nav == 'about') {
+			About();
 		} else {
 			console.clear();
 			exit = true;
