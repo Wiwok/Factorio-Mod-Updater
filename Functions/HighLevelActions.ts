@@ -33,10 +33,18 @@ async function InstallMod(mod: Mod, type: InstallType) {
 	}
 	ConsoleInteractions.clearLine();
 	console.log('[2/4] Downloading...');
-	await OnlineInteractions.downloadMod(mod.name, mod.version);
+	await OnlineInteractions.downloadMod(mod.name, mod.version).catch(() => {
+		ConsoleInteractions.clearLine();
+		console.log(chalk.redBright('An error occurred while downloading this mod.'));
+		return;
+	});
 	ConsoleInteractions.clearLine();
 	console.log('[3/4] Unzipping...');
-	OnlineInteractions.unzipMod();
+	if (!OnlineInteractions.unzipMod()) {
+		ConsoleInteractions.clearLine();
+		console.log(chalk.redBright('An error occurred while unzipping this mod.'));
+		return;
+	}
 	ConsoleInteractions.clearLine();
 	console.log('[4/4] Installing...');
 	fse.moveSync(MODTEMP + 'mod/' + mod.name, MODDIR + mod.name);

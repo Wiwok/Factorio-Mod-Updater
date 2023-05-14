@@ -16,11 +16,23 @@ const MODURL = 'https://mods.factorio.com/mod';
 const DOWNLOADURL = 'https://factorio-launcher-mods.storage.googleapis.com';
 
 function unzipMod() {
-	const zip = new AdmZip(MODTEMP + 'mod.zip');
-	zip.extractAllTo(MODTEMP + 'zip/', true);
-	const name = JSON.parse(fs.readFileSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0] + '/info.json').toString())?.name;
-	fse.moveSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0], MODTEMP + 'mod/' + name);
-	fs.rmSync(MODTEMP + 'mod.zip');
+	try {
+		const zip = new AdmZip(MODTEMP + 'mod.zip');
+		zip.extractAllTo(MODTEMP + 'zip/', true);
+		const name = JSON.parse(fs.readFileSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0] + '/info.json').toString())?.name;
+		fse.moveSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0], MODTEMP + 'mod/' + name);
+		fs.rmSync(MODTEMP + 'mod.zip');
+		return true;
+	} catch (err) {
+		if (fs.existsSync(MODTEMP + 'mod.zip')) {
+			fs.rmSync(MODTEMP + 'mod.zip');
+		}
+
+		fs.rmSync(MODTEMP + 'zip');
+		fs.mkdirSync(MODTEMP + 'zip');
+
+		return false;
+	}
 }
 
 function checkModExist(name: string) {
