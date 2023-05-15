@@ -6,7 +6,7 @@ import OnlineInteractions from './Functions/OnlineInteractions';
 import UserInteration from './Functions/UserInteraction';
 import ConsoleInteractions from './Functions/ConsoleInteractions';
 
-const APPV = '2.1.0';
+const APPV = '2.2.0';
 
 async function Install() {
 	console.clear();
