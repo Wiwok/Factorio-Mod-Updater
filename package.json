@@ -5,7 +5,7 @@
 	"main": "index.ts",
 	"scripts": {
 		"start": "npx ts-node index.ts",
-		"build": "tsc && ncc build -o build/ ./build/code/index.js && pkg --compress GZip --target node18-win-x64 -o build/app.exe ./build/index.js"
+		"build": "tsc && ncc build -o build/ ./build/code/index.js && pkg --compress GZip --target node18-win-x64 -o build/Factorio-Mod-Updater.exe ./build/index.js"
 	},
 	"author": "Wiwok",
 	"license": "ISC",
