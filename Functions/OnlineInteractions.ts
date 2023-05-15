@@ -13,6 +13,8 @@ const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
 
 const MODURL = 'https://mods.factorio.com/mod';
 
+const SEARCHURL = 'https://mods.factorio.com/downloaded?version=1.1&query=';
+
 const DOWNLOADURL = 'https://factorio-launcher-mods.storage.googleapis.com';
 
 function unzipMod() {
@@ -115,7 +117,7 @@ async function fetchMod(name: string) {
 			VersionNumber = VersionNumber.replace('\n', '');
 		}
 		// @ts-ignore
-		const Author: string | undefined = $('dd')[0].children[0]?.next?.children[0]?.data;
+		const Author: string | undefined = $('dd')[0]?.children[0]?.next?.children[0]?.data;
 		// @ts-ignore
 		const Title: string | undefined = $('a')[8]?.children[0]?.data;
 		// @ts-ignore
@@ -125,6 +127,47 @@ async function fetchMod(name: string) {
 		}
 		// @ts-ignore
 		resolve(new Mod(name, Title, VersionNumber, Author, [], Description ?? ''));
+	});
+}
+
+async function searchMod(search: string) {
+	return new Promise<Array<Mod>>(async (resolve, reject) => {
+		const v = await axios.get(`${SEARCHURL}${search}`);
+		const $ = load(v.data);
+
+		const modList: Array<any> = [];
+
+		$('.mb0').each((i, el) => {
+			if (i % 2 == 1) {
+				// @ts-ignore
+				let name: Array<string> = el?.children[0]?.next?.attribs?.href?.split('');
+				name.shift();
+				name.shift();
+				name.shift();
+				name.shift();
+				name.shift();
+
+				// @ts-ignore
+				const title = el?.children[0]?.next?.children[0]?.data;
+
+				modList.push({ name: name.join(''), title: title });
+			}
+		});
+
+
+		$('.orange').each((i, el) => {
+			const old = modList[i];
+			// @ts-ignore
+			modList[i] = { name: old.name, title: old.title, author: el?.children[0]?.data };
+		});
+
+		$('.pre-line').each((i, el) => {
+			const old = modList[i];
+			// @ts-ignore
+			modList[i] = { name: old.name, title: old.title, author: old.author, description: el?.children[0]?.data };
+		});
+
+		resolve(modList.map(v => { return new Mod(v.name, v.title, 'Unknown', v.author, [], v.description); }));
 	});
 }
 
@@ -141,5 +184,5 @@ async function checkInternet() {
 	});
 }
 
-const OnlineInteractions = { checkInternet, checkModExist, downloadMod, fetchMod, unzipMod };
+const OnlineInteractions = { checkInternet, checkModExist, downloadMod, fetchMod, searchMod, unzipMod };
 export default OnlineInteractions;

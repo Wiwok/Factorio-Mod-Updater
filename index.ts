@@ -4,6 +4,7 @@ import DataInteraction from './Functions/DataInteraction';
 import HighLevelActions from './Functions/HighLevelActions';
 import OnlineInteractions from './Functions/OnlineInteractions';
 import UserInteration from './Functions/UserInteraction';
+import ConsoleInteractions from './Functions/ConsoleInteractions';
 
 const APPV = '2.1.0';
 
@@ -20,11 +21,19 @@ async function Install() {
 	}
 
 
-	const modName = await UserInteration.Prompt('What mod do you want to install?');
+	let modName = await UserInteration.Prompt('What mod do you want to install?');
 	if (!await OnlineInteractions.checkModExist(modName)) {
-		console.log(chalk.redBright('Mod not found'));
-		UserInteration.GoBackToMenu();
-		return;
+		console.log('Searching...');
+		const modList = (await OnlineInteractions.searchMod(modName)).map(v => {
+			return { name: v.title, value: v.name };
+		});
+		ConsoleInteractions.clearLine();
+		if (modList.length == 0) {
+			console.log(chalk.redBright('No matching mods found'));
+			UserInteration.GoBackToMenu();
+			return;
+		}
+		modName = await UserInteration.Choices(modList.length + ' mods found:', modList);
 	}
 	if (DataInteraction.Installed.isInstalled(modName)) {
 		const mod = DataInteraction.Installed.fetchMod(modName);
