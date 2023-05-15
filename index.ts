@@ -130,7 +130,7 @@ async function main() {
 	let exit = false;
 	while (!exit) {
 		console.clear();
-		console.log('Welcome to ' + chalk.bgGray('Factorio Mod Updater') + '\n');
+		console.log(chalk.bgGray('Factorio Mod Updater') + '\n');
 
 		const nav = await UserInteration.Choices('What do you want to do ?', [{ name: 'Install a mod', value: 'install' }, { name: 'Update my mods', value: 'update' }, { name: 'Uninstall a mod', value: 'uninstall' }, { name: 'About', value: 'about' }, { name: 'Quit', value: 'exit' }]);
 		if (nav == 'install') {
