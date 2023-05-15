@@ -131,7 +131,7 @@ function About() {
 	console.clear();
 	console.log(chalk.bgGray('Factorio Mod Updater') + '\n');
 	console.log('Maintained by ' + chalk.bold('Wiwok'));
-	console.log('Version: ' + APPV);
+	console.log('Version: ' + chalk.underline(APPV));
 	UserInteration.GoBackToMenu();
 }
 
