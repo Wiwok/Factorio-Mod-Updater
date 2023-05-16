@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 
+import ConsoleInteractions from './Functions/ConsoleInteractions';
 import DataInteraction from './Functions/DataInteraction';
 import HighLevelActions from './Functions/HighLevelActions';
 import OnlineInteractions from './Functions/OnlineInteractions';
 import UserInteration from './Functions/UserInteraction';
-import ConsoleInteractions from './Functions/ConsoleInteractions';
 
 const APPV = '2.2.1';
 
