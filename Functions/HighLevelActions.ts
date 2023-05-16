@@ -47,7 +47,13 @@ async function InstallMod(mod: Mod, type: InstallType) {
 	}
 	ConsoleInteractions.clearLine();
 	console.log('[4/4] Installing...');
-	fse.moveSync(MODTEMP + 'mod/' + mod.name, MODDIR + mod.name);
+	try {
+		fse.moveSync(MODTEMP + 'mod/' + mod.name, MODDIR + mod.name);
+	} catch (err) {
+		ConsoleInteractions.clearLine();
+		console.log(chalk.redBright('An error occurred while installing this mod.'));
+		return;
+	}
 	ConsoleInteractions.clearLine();
 	ConsoleInteractions.clearLine();
 	const timeNow = Date.now() - time;
