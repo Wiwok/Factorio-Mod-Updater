@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { existsSync } from 'fs';
 
 import ConsoleInteractions from './Functions/ConsoleInteractions';
 import DataInteraction from './Functions/DataInteraction';
@@ -158,6 +159,8 @@ async function main() {
 	process.exit();
 }
 
+
+console.clear();
 if (!DataInteraction.clearTemp()) {
 	console.log(chalk.redBright('An error occurred.'));
 	console.log('Press enter to quit...');
@@ -165,4 +168,13 @@ if (!DataInteraction.clearTemp()) {
 	console.clear();
 	process.exit();
 }
+
+if (!existsSync(process.env.APPDATA + '/Factorio/mods/')) {
+	console.log(chalk.redBright('Factorio mods folder not found.'));
+	console.log('Press enter to quit...');
+	UserInteration.Pause();
+	console.clear();
+	process.exit();
+}
+
 main();
