@@ -14,6 +14,14 @@ const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 type InstallType = 'update' | 'install';
 
 async function InstallMod(mod: Mod, type: InstallType) {
+
+	function clearName(name: string) {
+		while (name.includes('%20')) {
+			name = name.replace('%20', ' ');
+		}
+		return name;
+	}
+
 	const time = Date.now();
 	if (type == 'install') {
 		console.log('Installation of ' + chalk.bold(mod.title));
@@ -48,7 +56,7 @@ async function InstallMod(mod: Mod, type: InstallType) {
 	ConsoleInteractions.clearLine();
 	console.log('[4/4] Installing...');
 	try {
-		fse.moveSync(MODTEMP + 'mod/' + mod.name, MODDIR + mod.name);
+		fse.moveSync(MODTEMP + 'mod/' + clearName(mod.name), MODDIR + clearName(mod.name));
 	} catch (err) {
 		ConsoleInteractions.clearLine();
 		console.log(chalk.redBright('An error occurred while installing this mod.'));

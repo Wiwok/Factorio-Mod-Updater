@@ -18,19 +18,10 @@ const SEARCHURL = 'https://mods.factorio.com/downloaded?version=1.1&query=';
 const DOWNLOADURL = 'https://factorio-launcher-mods.storage.googleapis.com';
 
 function unzipMod() {
-
-	function clearName(name: string) {
-		while (name.includes(' ')) {
-			name = name.replace(' ', '%20');
-		}
-		return name;
-	}
-
-
 	try {
 		const zip = new AdmZip(MODTEMP + 'mod.zip');
 		zip.extractAllTo(MODTEMP + 'zip/', true);
-		const name = clearName(JSON.parse(fs.readFileSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0] + '/info.json').toString())?.name);
+		const name = JSON.parse(fs.readFileSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0] + '/info.json').toString())?.name;
 		fse.moveSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0], MODTEMP + 'mod/' + name);
 		fs.rmSync(MODTEMP + 'mod.zip');
 		return true;
