@@ -6,12 +6,17 @@ const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 const TEMPDIR = process.env.APPDATA + '/Factorio Mod Updater/';
 
 function clearTempDir() {
-	if (fs.existsSync(TEMPDIR)) {
-		fs.rmSync(TEMPDIR, { recursive: true, force: true });
+	try {
+		if (fs.existsSync(TEMPDIR)) {
+			fs.rmSync(TEMPDIR, { recursive: true, force: true });
+		}
+		fs.mkdirSync(TEMPDIR);
+		fs.mkdirSync(TEMPDIR + 'mod');
+		fs.mkdirSync(TEMPDIR + 'zip');
+		return true;
+	} catch (err) {
+		return false;
 	}
-	fs.mkdirSync(TEMPDIR);
-	fs.mkdirSync(TEMPDIR + 'mod');
-	fs.mkdirSync(TEMPDIR + 'zip');
 }
 
 function isModInstalled(name: string) {

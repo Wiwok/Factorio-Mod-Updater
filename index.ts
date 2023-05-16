@@ -158,5 +158,11 @@ async function main() {
 	process.exit();
 }
 
-DataInteraction.clearTemp();
+if (!DataInteraction.clearTemp()) {
+	console.log(chalk.redBright('An error occurred.'));
+	console.log('Press enter to quit...');
+	UserInteration.Pause();
+	console.clear();
+	process.exit();
+}
 main();
