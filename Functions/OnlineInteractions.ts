@@ -182,11 +182,14 @@ async function searchMod(search: string) {
 
 
 async function checkInternet() {
+	console.log('Checking internet...');
 	return new Promise<boolean>(resolve => {
 		dns.lookup('google.com', err => {
 			if (err && err.code == 'ENOTFOUND') {
+				ConsoleInteractions.clearLine();
 				resolve(false);
 			} else {
+				ConsoleInteractions.clearLine();
 				resolve(true);
 			}
 		});
