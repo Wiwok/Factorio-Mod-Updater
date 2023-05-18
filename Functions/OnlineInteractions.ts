@@ -106,7 +106,8 @@ async function downloadMod(name: string, version: string) {
 
 async function fetchMod(name: string) {
 	return new Promise<Mod>(async (resolve, reject) => {
-		const v = await axios.get(`${MODURL}/${name}`);
+		const v = await axios.get(`${MODURL}/${name}`).catch(reject);
+		if (typeof v == 'undefined') return;
 		const $ = load(v.data);
 		//@ts-ignore
 		let VersionNumber: string | undefined = $('dd')[5]?.children[0]?.data;
@@ -124,6 +125,7 @@ async function fetchMod(name: string) {
 		const Description: string | undefined = $('p')[0]?.children[0]?.data;
 		if ([Title, Author, VersionNumber].includes(undefined)) {
 			reject('Internal error: Unable to fetch this mod.');
+			return;
 		}
 		// @ts-ignore
 		resolve(new Mod(name, Title, VersionNumber, Author, [], Description ?? ''));
