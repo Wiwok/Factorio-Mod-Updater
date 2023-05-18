@@ -9,9 +9,15 @@ function CleanDependency(dependency: string) {
 	flib >= 0.6.0
 	*/
 
-	if (dependency.startsWith('?')) {
+	if (dependency.startsWith('?') || dependency.startsWith('(?)')) {
 		let dep = dependency.split('');
-		dep.shift();
+		if (dependency.startsWith('?')) {
+			dep.shift();
+		} else {
+			dep.shift();
+			dep.shift();
+			dep.shift();
+		}
 		while (dep[0] == ' ') {
 			dep.shift();
 		}
@@ -31,9 +37,7 @@ function CleanDependency(dependency: string) {
 		return new Dependency(dep[0], 'Conflict');
 	} else {
 		let dep = dependency.split('');
-		if (dependency.startsWith('(')) {
-			dep.shift();
-			dep.shift();
+		if (dependency.startsWith('~')) {
 			dep.shift();
 		}
 
@@ -42,6 +46,7 @@ function CleanDependency(dependency: string) {
 		}
 
 		dep = dep.join('').split(' ');
+		if (dep[0] == 'base') return;
 		if (dep.join(' ').includes('=')) {
 			return new Dependency(dep[0], 'Required', dep[2]);
 		} else {
@@ -95,4 +100,5 @@ class Mod {
 	}
 }
 
+export { Dependency };
 export default Mod;
