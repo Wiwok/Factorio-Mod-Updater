@@ -33,6 +33,15 @@ async function Choices(message: string, choices: Array<Choice>): Promise<string>
 	})).list;
 }
 
+async function CheckBox(message: string, choices: Array<Choice>) {
+	return (await inquirer.prompt({
+		name: 'checkBox',
+		message: message,
+		choices: choices,
+		type: 'checkbox'
+	})).checkBox;
+}
+
 function GoBackToMenu() {
 	console.log('Press enter to go back to the menu...')
 	Pause();
@@ -43,5 +52,5 @@ function Pause() {
 }
 
 
-const UserInteration = { Prompt, Choices, GoBackToMenu, Pause, Valid };
+const UserInteration = { CheckBox, Choices, GoBackToMenu, Pause, Prompt, Valid };
 export default UserInteration;
