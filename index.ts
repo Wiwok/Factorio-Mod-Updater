@@ -177,4 +177,5 @@ if (!existsSync(process.env.APPDATA + '/Factorio/mods/')) {
 	process.exit();
 }
 
+process.title = 'Factorio Mod Updater (v' + APPV + ')';
 main();
