@@ -37,16 +37,6 @@ function unzipMod() {
 	}
 }
 
-function checkModExist(name: string) {
-	return new Promise<boolean>(resolve => {
-		axios.get(MODURL + '/' + name).then(() => {
-			resolve(true);
-		}).catch(() => {
-			resolve(false);
-		});
-	});
-}
-
 async function downloadMod(name: string, version: string) {
 	function ProgressBar(progress: string) {
 		switch (progress) {
@@ -102,7 +92,6 @@ async function downloadMod(name: string, version: string) {
 		});
 	});
 }
-
 
 async function fetchMod(name: string) {
 	return new Promise<Mod>(async (resolve, reject) => {
@@ -189,5 +178,5 @@ async function checkInternet() {
 	});
 }
 
-const OnlineInteractions = { checkInternet, checkModExist, downloadMod, fetchMod, searchMod, unzipMod };
+const OnlineInteractions = { checkInternet, downloadMod, fetchMod, searchMod, unzipMod };
 export default OnlineInteractions;
