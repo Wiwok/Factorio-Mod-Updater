@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import { existsSync } from 'fs';
+import { createServer } from 'http';
 
 import ConsoleInteractions from './Functions/ConsoleInteractions';
 import DataInteraction from './Functions/DataInteraction';
@@ -249,23 +250,41 @@ async function main() {
 	process.exit();
 }
 
-
-console.clear();
-if (!DataInteraction.clearTemp()) {
-	console.log(chalk.redBright('An error occurred.'));
-	console.log('Press enter to quit...');
-	UserInteration.Pause();
+function Starting() {
+	process.title = 'Factorio Mod Updater (v' + APPV + ')';
 	console.clear();
-	process.exit();
+
+	if (!DataInteraction.clearTemp()) {
+		console.log(chalk.redBright('An error occurred.'));
+		console.log('Press enter to quit...');
+		UserInteration.Pause();
+		console.clear();
+		process.exit();
+	}
+
+	if (!existsSync(process.env.APPDATA + '/Factorio/mods/')) {
+		console.log(chalk.redBright('Factorio mods folder not found.'));
+		console.log('Press enter to quit...');
+		UserInteration.Pause();
+		console.clear();
+		process.exit();
+	}
+
+	const server = createServer();
+	server.listen(8399);
+
+	// Make sure this server doesn't keep the process running
+	server.unref();
+
+	server.on('error', () => {
+		console.log(chalk.redBright('Factorio Mod Updater is already running. Can\'t run more than one instance.'));
+		console.log('Press enter to quit...');
+		UserInteration.Pause();
+		console.clear();
+		process.exit();
+	});
+
+	server.once('listening', main);
 }
 
-if (!existsSync(process.env.APPDATA + '/Factorio/mods/')) {
-	console.log(chalk.redBright('Factorio mods folder not found.'));
-	console.log('Press enter to quit...');
-	UserInteration.Pause();
-	console.clear();
-	process.exit();
-}
-
-process.title = 'Factorio Mod Updater (v' + APPV + ')';
-main();
+Starting();
