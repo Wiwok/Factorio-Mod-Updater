@@ -162,7 +162,6 @@ async function searchMod(search: string) {
 	});
 }
 
-
 async function checkInternet() {
 	console.log('Checking internet...');
 	return new Promise<boolean>(resolve => {
