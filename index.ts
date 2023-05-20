@@ -123,6 +123,13 @@ async function Manage() {
 				});
 			}
 		} else if (Choice == 'check') {
+			const isOnline = await OnlineInteractions.checkInternet();
+
+			if (!isOnline) {
+				console.log(chalk.redBright('Please check your internet connection'));
+				UserInteration.GoBackToMenu();
+				return;
+			}
 			for (let mod of modList) {
 				if (!HighLevelActions.CheckModState(mod)) {
 					console.log('❌' + chalk.bold(mod.title) + ' isn\'t working now.');
@@ -172,6 +179,13 @@ async function Manage() {
 				}
 			}
 		} else if (Choice == 'check') {
+			const isOnline = await OnlineInteractions.checkInternet();
+
+			if (!isOnline) {
+				console.log(chalk.redBright('Please check your internet connection'));
+				UserInteration.GoBackToMenu();
+				return;
+			}
 			if (HighLevelActions.CheckModState(mod)) {
 				console.log('✅This mod is ready to be used.');
 				const next = await UserInteration.Valid('Do you want to process to a dependency check anyway?', false);
