@@ -87,13 +87,13 @@ async function Manage() {
 
 	const Choice = await UserInteration.Choices('What to do?', [
 		{
-			name: 'Update mod',
+			name: 'Update a mod',
 			value: 'update'
 		}, {
-			name: 'Check mod state',
+			name: 'Check a mod',
 			value: 'check'
 		}, {
-			name: 'Uninstall',
+			name: 'Uninstall a mod',
 			value: 'uninstall'
 		}, {
 			name: 'Cancel',
