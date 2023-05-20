@@ -276,6 +276,21 @@ async function UpdateAllMods() {
 	console.log('Mods updated in ' + (newTime / 1000).toFixed(2) + 's');
 }
 
+function IsModUnderDependency(mod: Mod) {
+	const modList = DataInteraction.Installed.getMods();
+	for (let localMod of modList) {
+		for (let dep of localMod.dependencies) {
+			if (dep.type == 'Required') {
+				if (dep.name == mod.name) {
+					const Dep = DataInteraction.Installed.fetchMod(localMod.name);
+					return Dep.title;
+				}
+			}
+		}
+	}
+	return '';
+}
+
 async function UpdateMod(mod: Mod) {
 	if (!await OnlineInteractions.checkModExist(mod.name)) {
 		console.log('Mod not found');
@@ -288,5 +303,5 @@ async function UpdateMod(mod: Mod) {
 }
 
 
-const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, UninstallMod, UpdateAllMods, UpdateMod };
+const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, IsModUnderDependency, UninstallMod, UpdateAllMods, UpdateMod };
 export default HighLevelActions;

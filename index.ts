@@ -162,7 +162,16 @@ async function Manage() {
 		if (Choice == 'uninstall') {
 			if (await UserInteration.Valid('Do you want to uninstall it?')) {
 				console.log('');
-				HighLevelActions.UninstallMod(mod);
+				const dep = HighLevelActions.IsModUnderDependency(mod);
+				if (dep != '') {
+					console.log(chalk.redBright('⚠️WARNING⚠️'));
+					console.log('This mod is required for ' + chalk.bold(dep) + ' to work.');
+					if (await UserInteration.Valid('Do you want to uninstall it anyway?', false)) {
+						HighLevelActions.UninstallMod(mod);
+					}
+				} else {
+					HighLevelActions.UninstallMod(mod);
+				}
 			}
 		} else if (Choice == 'check') {
 			if (HighLevelActions.CheckModState(mod)) {
