@@ -1,6 +1,6 @@
 {
 	"name": "factorio-mod-updater",
-	"version": "2.2.3",
+	"version": "2.3.0",
 	"description": "This is a tool made to update your factorio mods.",
 	"main": "index.ts",
 	"scripts": {
