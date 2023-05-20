@@ -24,7 +24,8 @@ async function Install() {
 
 
 	let modName = await UserInteration.Prompt('What mod do you want to install?');
-	if (!await OnlineInteractions.checkModExist(modName)) {
+	let mod = await OnlineInteractions.fetchMod(modName);
+	if (typeof mod == 'undefined') {
 		console.log('Searching...');
 		const modList = (await OnlineInteractions.searchMod(modName)).map(v => {
 			return { name: v.title, value: v.name };
@@ -36,6 +37,7 @@ async function Install() {
 			return;
 		}
 		modName = await UserInteration.Choices(modList.length + ' mods found:', modList);
+		mod = await OnlineInteractions.fetchMod(modName);
 	}
 	if (DataInteraction.Installed.isInstalled(modName)) {
 		const mod = DataInteraction.Installed.fetchMod(modName);
@@ -50,11 +52,6 @@ async function Install() {
 			console.log('Description:\n' + mod.description);
 		}
 		console.log(chalk.yellow('This mod is already installed'));
-		UserInteration.GoBackToMenu();
-		return;
-	}
-	const mod = await OnlineInteractions.fetchMod(modName);
-	if (typeof mod == 'undefined') {
 		UserInteration.GoBackToMenu();
 		return;
 	}
@@ -126,6 +123,13 @@ async function Manage() {
 				});
 			}
 		} else if (Choice == 'check') {
+			const isOnline = await OnlineInteractions.checkInternet();
+
+			if (!isOnline) {
+				console.log(chalk.redBright('Please check your internet connection'));
+				UserInteration.GoBackToMenu();
+				return;
+			}
 			for (let mod of modList) {
 				if (!HighLevelActions.CheckModState(mod)) {
 					console.log('❌' + chalk.bold(mod.title) + ' isn\'t working now.');
@@ -175,6 +179,13 @@ async function Manage() {
 				}
 			}
 		} else if (Choice == 'check') {
+			const isOnline = await OnlineInteractions.checkInternet();
+
+			if (!isOnline) {
+				console.log(chalk.redBright('Please check your internet connection'));
+				UserInteration.GoBackToMenu();
+				return;
+			}
 			if (HighLevelActions.CheckModState(mod)) {
 				console.log('✅This mod is ready to be used.');
 				const next = await UserInteration.Valid('Do you want to process to a dependency check anyway?', false);
