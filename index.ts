@@ -176,7 +176,7 @@ async function Manage() {
 			}
 		} else if (Choice == 'check') {
 			if (HighLevelActions.CheckModState(mod)) {
-				console.log('✅This mod is ready to be played.');
+				console.log('✅This mod is ready to be used.');
 				const next = await UserInteration.Valid('Do you want to process to a dependency check anyway?', false);
 				if (next) {
 					await HighLevelActions.CheckDependencies(mod);
