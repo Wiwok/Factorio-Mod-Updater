@@ -16,11 +16,12 @@ async function Prompt(message: string): Promise<string> {
 	})).prompt;
 }
 
-async function Valid(message: string): Promise<boolean> {
+async function Valid(message: string, Default: boolean = true): Promise<boolean> {
 	return (await inquirer.prompt({
 		name: 'valid',
 		message: message,
-		type: 'confirm'
+		type: 'confirm',
+		default: Default
 	})).valid;
 }
 

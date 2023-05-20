@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import fs from 'fs';
 import fse from 'fs-extra';
 
-import Mod from '../Classes/Mod';
+import Mod, { Dependency } from '../Classes/Mod';
 import ConsoleInteractions from './ConsoleInteractions';
 import DataInteraction from './DataInteraction';
 import OnlineInteractions from './OnlineInteractions';
@@ -54,18 +54,30 @@ async function InstallMod(mod: Mod, type: InstallType) {
 		return;
 	}
 	ConsoleInteractions.clearLine();
-	console.log('[4/4] Installing...');
+	if (type == 'install') {
+		console.log('[4/4] Installing...');
+	} else {
+		console.log('[4/4] Updating...');
+	}
 	try {
 		fse.moveSync(MODTEMP + 'mod/' + clearName(mod.name), MODDIR + clearName(mod.name));
 	} catch (err) {
 		ConsoleInteractions.clearLine();
-		console.log(chalk.redBright('An error occurred while installing this mod.'));
+		if (type == 'install') {
+			console.log(chalk.redBright('An error occurred while installing this mod.'));
+		} else {
+			console.log(chalk.redBright('An error occurred while updating this mod.'));
+		}
 		return;
 	}
 	ConsoleInteractions.clearLine();
 	ConsoleInteractions.clearLine();
 	const timeNow = Date.now() - time;
-	console.log(chalk.bold(mod.title) + ' installed in ' + (timeNow / 1000).toFixed(2) + 's');
+	if (type == 'install') {
+		console.log(chalk.bold(mod.title) + ' installed in ' + (timeNow / 1000).toFixed(2) + 's');
+	} else {
+		console.log(chalk.bold(mod.title) + ' updated in ' + (timeNow / 1000).toFixed(2) + 's');
+	}
 }
 
 function UninstallMod(mod: Mod) {
@@ -73,6 +85,151 @@ function UninstallMod(mod: Mod) {
 	fs.rmSync(MODDIR + mod.name, { recursive: true, force: true });
 	ConsoleInteractions.clearLine();
 	console.log('Successfully uninstalled ' + chalk.bold(mod.title));
+}
+
+function CheckModState(mod: Mod) {
+	const AllDependencies = mod.dependencies;
+
+	if (AllDependencies.length == 0) {
+		return true;
+	}
+
+	const ConflictsDeps: Array<Dependency> = [];
+	const RequiredDeps: Array<Dependency> = [];
+	AllDependencies.forEach(el => {
+		if (el.type == 'Conflict') {
+			ConflictsDeps.push(el);
+		} else if (el.type == 'Required') {
+			RequiredDeps.push(el);
+		}
+	});
+
+	let state = true;
+
+	// Check conflicts
+	ConflictsDeps.forEach(dep => {
+		if (DataInteraction.Installed.isInstalled(dep.name)) {
+			state = false;
+		}
+	});
+
+	// Check required
+	RequiredDeps.forEach(dep => {
+		if (!DataInteraction.Installed.isInstalled(dep.name)) {
+			state = false;
+		}
+	});
+
+	return state;
+}
+
+async function CheckDependencies(mod: Mod) {
+
+	const AllDependencies = mod.dependencies;
+
+	if (AllDependencies.length == 0) {
+		return;
+	}
+
+	const ConflictsDeps: Array<Dependency> = [];
+	const RequiredDeps: Array<Dependency> = [];
+	const OptionalsDeps: Array<Dependency> = [];
+	AllDependencies.forEach(el => {
+		if (el.type == 'Conflict') {
+			ConflictsDeps.push(el);
+		} else if (el.type == 'Required') {
+			RequiredDeps.push(el);
+		} else {
+			OptionalsDeps.push(el);
+		}
+	});
+
+	// Check conflicts
+	const toRemove: Array<any> = [];
+	ConflictsDeps.forEach(dep => {
+		if (DataInteraction.Installed.isInstalled(dep.name)) {
+			const dependency = DataInteraction.Installed.fetchMod(dep.name);
+			toRemove.push({ name: dependency.title, value: dependency, checked: true });
+		}
+	});
+
+	if (toRemove.length != 0) {
+		console.log('Theses mods are in ' + chalk.redBright('CONFLICT') + ' with ' + chalk.bold(mod.title));
+		const choices: Array<Mod> = await UserInteration.CheckBox('Select mods to remove', toRemove);
+		console.log('');
+		choices.forEach(UninstallMod);
+	}
+
+	// Check required
+	let toInstall: Array<any> = [];
+	RequiredDeps.forEach(dep => {
+		if (!DataInteraction.Installed.isInstalled(dep.name)) {
+			toInstall.push(dep);
+		}
+	});
+
+	if (toInstall.length != 0) {
+		let toInstallMods: Array<Mod> = [];
+		let i = 0;
+		for (let dep of toInstall) {
+			console.log('Fetching dependency [' + i + '/' + toInstall.length + ']...');
+			const mod = await OnlineInteractions.fetchMod(dep.name);
+			ConsoleInteractions.clearLine();
+			i++;
+			toInstallMods.push(mod);
+		}
+
+		toInstall = toInstallMods.map(dep => {
+			return { name: dep.title, value: dep, checked: true };
+		});
+
+		console.log('Theses mods are ' + chalk.blueBright('REQUIRED') + ' for ' + chalk.bold(mod.title));
+		toInstallMods = await UserInteration.CheckBox('Select mods to install', toInstall);
+		console.log('');
+
+		i = 0;
+		for (let mod of toInstallMods) {
+			await InstallMod(mod, 'install');
+		}
+	}
+
+	// Check optionals
+	let toOptInstall: Array<any> = [];
+	OptionalsDeps.forEach(dep => {
+		if (!DataInteraction.Installed.isInstalled(dep.name)) {
+			toOptInstall.push(dep);
+		}
+	});
+
+	if (toOptInstall.length != 0) {
+		const next = await UserInteration.Valid(toOptInstall.length + ' optionals dependencies are available. Do you wanna check them ?', false);
+
+		if (!next) return;
+
+		let toOptInstallMods: Array<Mod> = [];
+		let i = 0;
+		for (let dep of toOptInstall) {
+			console.log('Fetching dependency [' + i + '/' + toOptInstall.length + ']...');
+			const mod = await OnlineInteractions.fetchMod(dep.name);
+			ConsoleInteractions.clearLine();
+			i++;
+			toOptInstallMods.push(mod);
+		}
+
+		toOptInstall = toOptInstallMods.map(dep => {
+			return { name: dep.title, value: dep, checked: true };
+		});
+
+		console.log('Theses mods are ' + chalk.blueBright('OPTIONAL') + ' for ' + chalk.bold(mod.title));
+		toOptInstallMods = await UserInteration.CheckBox('Select mods to install', toOptInstall);
+		console.log('');
+
+		i = 0;
+		for (let mod of toOptInstallMods) {
+			await InstallMod(mod, 'install');
+		}
+	}
+
 }
 
 async function UpdateAllMods() {
@@ -127,9 +284,9 @@ async function UpdateMod(mod: Mod) {
 
 	UninstallMod(mod);
 	ConsoleInteractions.clearLine();
-	await InstallMod(mod, 'update')
+	await InstallMod(mod, 'update');
 }
 
 
-const HighLevelActions = { InstallMod, UninstallMod, UpdateAllMods, UpdateMod };
+const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, UninstallMod, UpdateAllMods, UpdateMod };
 export default HighLevelActions;
