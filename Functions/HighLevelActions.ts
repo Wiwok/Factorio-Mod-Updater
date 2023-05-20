@@ -34,6 +34,11 @@ async function InstallMod(mod: Mod, type: InstallType) {
 		console.log('Mod already installed');
 		return;
 	}
+	if (!await OnlineInteractions.checkModExist(mod.name)) {
+		ConsoleInteractions.clearLine();
+		console.log('Mod not found');
+		return;
+	}
 	ConsoleInteractions.clearLine();
 	console.log('[2/4] Downloading...');
 	await OnlineInteractions.downloadMod(mod.name, mod.version).catch(() => {
@@ -287,6 +292,11 @@ function IsModUnderDependency(mod: Mod) {
 }
 
 async function UpdateMod(mod: Mod) {
+	if (!await OnlineInteractions.checkModExist(mod.name)) {
+		console.log('Mod not found');
+		return;
+	}
+
 	UninstallMod(mod);
 	ConsoleInteractions.clearLine();
 	await InstallMod(mod, 'update');
