@@ -30,7 +30,7 @@ function unzipMod() {
 			fs.rmSync(MODTEMP + 'mod.zip');
 		}
 
-		fs.rmSync(MODTEMP + 'zip');
+		fs.rmdirSync(MODTEMP + 'zip');
 		fs.mkdirSync(MODTEMP + 'zip');
 
 		return false;
