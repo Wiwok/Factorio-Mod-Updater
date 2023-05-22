@@ -14,9 +14,7 @@ async function Install() {
 	console.clear();
 	console.log(chalk.bgGray('Install a mod') + '\n');
 
-	const isOnline = await OnlineInteractions.checkInternet();
-
-	if (!isOnline) {
+	if (!await OnlineInteractions.checkInternet()) {
 		console.log(chalk.redBright('Please check your internet connection'));
 		UserInteration.GoBackToMenu();
 		return;
@@ -123,9 +121,7 @@ async function Manage() {
 				});
 			}
 		} else if (Choice == 'check') {
-			const isOnline = await OnlineInteractions.checkInternet();
-
-			if (!isOnline) {
+			if (!await OnlineInteractions.checkInternet()) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
@@ -140,9 +136,7 @@ async function Manage() {
 			}
 			console.log('Done !');
 		} else if (Choice == 'update') {
-			const isOnline = await OnlineInteractions.checkInternet();
-
-			if (!isOnline) {
+			if (!await OnlineInteractions.checkInternet()) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
@@ -179,9 +173,7 @@ async function Manage() {
 				}
 			}
 		} else if (Choice == 'check') {
-			const isOnline = await OnlineInteractions.checkInternet();
-
-			if (!isOnline) {
+			if (!await OnlineInteractions.checkInternet()) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
@@ -199,9 +191,7 @@ async function Manage() {
 				}
 			}
 		} else if (Choice == 'update') {
-			const isOnline = await OnlineInteractions.checkInternet();
-
-			if (!isOnline) {
+			if (!await OnlineInteractions.checkInternet()) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
@@ -242,11 +232,12 @@ async function main() {
 		console.clear();
 		console.log(chalk.bgGray('Factorio Mod Updater') + '\n');
 
-		const nav = await UserInteration.Choices('What do you want to do ?',
-			[{ name: 'Install a mod', value: 'install' },
+		const nav = await UserInteration.Choices('What do you want to do ?', [
+			{ name: 'Install a mod', value: 'install' },
 			{ name: 'Manage my mods', value: 'manage' },
 			{ name: 'About', value: 'about' },
-			{ name: 'Quit', value: 'exit' }]);
+			{ name: 'Quit', value: 'exit' }
+		]);
 		if (nav == 'install') {
 			await Install();
 		} else if (nav == 'manage') {
