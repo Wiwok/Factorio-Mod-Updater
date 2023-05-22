@@ -133,7 +133,7 @@ async function Manage() {
 			for (let mod of modList) {
 				if (!HighLevelActions.CheckModState(mod)) {
 					console.log('❌' + chalk.bold(mod.title) + ' isn\'t working now.');
-					if (await UserInteration.Valid('Do you want to process to a dependency check ? ')) {
+					if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
 						await HighLevelActions.CheckDependencies(mod);
 					}
 				}
@@ -188,13 +188,13 @@ async function Manage() {
 			}
 			if (HighLevelActions.CheckModState(mod)) {
 				console.log('✅This mod is ready to be used.');
-				const next = await UserInteration.Valid('Do you want to process to a dependency check anyway?', false);
+				const next = await UserInteration.Valid('Would you like to perform a dependency check anyway?', false);
 				if (next) {
 					await HighLevelActions.CheckDependencies(mod);
 				}
 			} else {
 				console.log('❌This mod isn\'t working now.');
-				if (await UserInteration.Valid('Do you want to process to a dependency check?')) {
+				if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
 					await HighLevelActions.CheckDependencies(mod);
 				}
 			}
