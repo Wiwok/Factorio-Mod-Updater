@@ -73,6 +73,15 @@ async function InstallMod(mod: Mod, type: InstallType) {
 	} else {
 		console.log(chalk.bold(mod.title) + ' updated in ' + (timeNow / 1000).toFixed(2) + 's');
 	}
+
+	mod = DataInteraction.Installed.fetchMod(mod.name);
+	if (!CheckModState(mod)) {
+		console.log('');
+		console.log('❌This mod isn\'t working now.');
+		if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
+			await HighLevelActions.CheckDependencies(mod);
+		}
+	}
 }
 
 function UninstallMod(mod: Mod) {
