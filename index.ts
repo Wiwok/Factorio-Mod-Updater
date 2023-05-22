@@ -24,7 +24,7 @@ async function Install() {
 
 
 	let modName = await UserInteration.Prompt('What mod do you want to install?');
-	let mod = await OnlineInteractions.fetchMod(modName);
+	let mod = await OnlineInteractions.fetchMod(modName).catch(() => { return; });
 	if (typeof mod == 'undefined') {
 		console.log('Searching...');
 		const modList = (await OnlineInteractions.searchMod(modName)).map(v => {
