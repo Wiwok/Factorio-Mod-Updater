@@ -73,9 +73,9 @@ async function Manage() {
 	console.clear();
 	console.log(chalk.bgGray('Your mods') + '\n');
 
-	const modList = DataInteraction.Installed.getMods();
+	const List = DataInteraction.Installed.getList();
 
-	if (modList.length == 0) {
+	if (List.length == 0) {
 		console.log(chalk.redBright('No mods found'));
 		UserInteration.GoBackToMenu();
 		return;
@@ -101,6 +101,8 @@ async function Manage() {
 		UserInteration.GoBackToMenu;
 		return;
 	}
+
+	const modList = DataInteraction.Installed.getMods();
 
 	const choices = modList.map(mod => {
 		return { name: mod.title, value: mod.name };

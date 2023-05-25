@@ -51,10 +51,18 @@ function fetchInstalledMod(name: string) {
 	return new Mod(data.name, data.title, data.version, data.author, data?.dependencies);
 }
 
+function getModsList() {
+	const mods = fs.readdirSync(MODDIR).filter(mod => {
+		if (fs.lstatSync(MODDIR + '/' + mod).isDirectory()) return mod;
+	});
+	return mods;
+}
+
 
 const DataInteraction = {
 	Installed: {
 		getMods: getInstalledMods,
+		getList: getModsList,
 		isInstalled: isModInstalled,
 		fetchMod: fetchInstalledMod
 	},
