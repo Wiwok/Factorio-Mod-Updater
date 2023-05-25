@@ -38,33 +38,6 @@ function unzipMod() {
 }
 
 async function downloadMod(name: string, version: string) {
-	function ProgressBar(progress: string) {
-		switch (progress) {
-			default: return '[                    ]';
-			case '0': return '[>                   ]';
-			case '1': return '[=>                  ]';
-			case '2': return '[==>                 ]';
-			case '3': return '[===>                ]';
-			case '4': return '[====>               ]';
-			case '5': return '[=====>              ]';
-			case '6': return '[======>             ]';
-			case '7': return '[=======>            ]';
-			case '8': return '[========>           ]';
-			case '9': return '[=========>          ]';
-			case '10': return '[==========>         ]';
-			case '11': return '[===========>        ]';
-			case '12': return '[============>       ]';
-			case '13': return '[=============>      ]';
-			case '14': return '[==============>     ]';
-			case '15': return '[===============>    ]';
-			case '16': return '[================>   ]';
-			case '17': return '[=================>  ]';
-			case '18': return '[==================> ]';
-			case '19': return '[===================>]';
-			case '20': return '[====================]';
-		}
-	}
-
 	return new Promise<void>((resolve, reject) => {
 		https.get(`${DOWNLOADURL}/${name}/${version}.zip`, async response => {
 			const code = response.statusCode ?? 0;
@@ -80,11 +53,11 @@ async function downloadMod(name: string, version: string) {
 			const fileSize = parseInt(response.headers['content-length'] as string, 10);
 			const downloadSize = fileWriter.bytesWritten;
 			const percentage = parseFloat(((downloadSize / fileSize) * 100).toFixed(2));
-			console.log(`${ProgressBar((percentage / 10).toFixed(0))} ${percentage.toString()}%`);
+			console.log(`${ConsoleInteractions.ProgressBar((percentage / 10).toFixed(0))} ${percentage.toString()}%`);
 			const interval = setInterval(async () => {
 				const actualPercentage = parseFloat(((fileWriter.bytesWritten / fileSize) * 100).toFixed(2));
 				ConsoleInteractions.clearLine();
-				console.log(`${ProgressBar((actualPercentage / 5).toFixed(0))} ${actualPercentage.toString()}%`);
+				console.log(`${ConsoleInteractions.ProgressBar((actualPercentage / 5).toFixed(0))} ${actualPercentage.toString()}%`);
 			}, 50);
 			response.pipe(fileWriter);
 		}).on('error', error => {
