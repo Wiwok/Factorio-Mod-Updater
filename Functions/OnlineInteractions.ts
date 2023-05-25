@@ -90,7 +90,7 @@ async function fetchMod(name: string) {
 			return;
 		}
 		// @ts-ignore
-		resolve(new Mod(name, Title, VersionNumber, Author, [], Description ?? ''));
+		resolve(new Mod(name, Title, VersionNumber, Author, [], Description ?? undefined));
 	});
 }
 
