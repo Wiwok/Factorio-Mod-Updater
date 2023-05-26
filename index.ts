@@ -240,15 +240,14 @@ async function main() {
 			{ name: 'About', value: 'about' },
 			{ name: 'Quit', value: 'exit' }
 		]);
-		if (nav == 'install') {
-			await Install();
-		} else if (nav == 'manage') {
-			await Manage();
-		} else if (nav == 'about') {
-			About();
-		} else {
-			console.clear();
-			exit = true;
+		switch (nav) {
+			case 'install': await Install(); break;
+			case 'manage': await Manage(); break;
+			case 'about': About(); break;
+			case 'exit': {
+				console.clear();
+				exit = true;
+			}
 		}
 	}
 	process.exit();
