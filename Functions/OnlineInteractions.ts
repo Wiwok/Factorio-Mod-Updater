@@ -11,7 +11,7 @@ import ConsoleInteractions from './ConsoleInteractions';
 
 const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
 
-const MODURL = 'https://mods.factorio.com/mod';
+const MODURL = 'https://mods.factorio.com/api/mods/';
 
 const SEARCHURL = 'https://mods.factorio.com/downloaded?version=1.1&query=';
 
@@ -68,29 +68,23 @@ async function downloadMod(name: string, version: string) {
 
 async function fetchMod(name: string) {
 	return new Promise<Mod>(async (resolve, reject) => {
-		const v = await axios.get(`${MODURL}/${name}`).catch(reject);
-		if (typeof v == 'undefined') return;
-		const $ = load(v.data);
-		//@ts-ignore
-		let VersionNumber: string | undefined = $('dd')[5]?.children[0]?.data;
-		while (VersionNumber?.includes(' ')) {
-			VersionNumber = VersionNumber.replace(' ', '');
-		}
-		while (VersionNumber?.includes('\n')) {
-			VersionNumber = VersionNumber.replace('\n', '');
-		}
 		// @ts-ignore
-		const Author: string | undefined = $('dd')[0]?.children[0]?.next?.children[0]?.data;
-		// @ts-ignore
-		const Title: string | undefined = $('a')[8]?.children[0]?.data;
-		// @ts-ignore
-		const Description: string | undefined = $('p')[0]?.children[0]?.data;
-		if ([Title, Author, VersionNumber].includes(undefined)) {
+		const datas = (await axios.get(MODURL + name).catch(reject))?.data;
+		try {
+			const title = datas?.title;
+			const version = datas?.releases[datas?.releases?.length - 1]?.version;
+			const author = datas?.owner;
+			const description = datas?.summary ?? undefined;
+
+			if ([title, author, version].includes(undefined)) {
+				reject('Internal error: Unable to fetch this mod.');
+				return;
+			}
+
+			resolve(new Mod(name, title, version, author, [], description));
+		} catch (err) {
 			reject('Internal error: Unable to fetch this mod.');
-			return;
 		}
-		// @ts-ignore
-		resolve(new Mod(name, Title, VersionNumber, Author, [], Description ?? undefined));
 	});
 }
 
