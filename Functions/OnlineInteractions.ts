@@ -39,7 +39,7 @@ function unzipMod() {
 
 async function downloadMod(name: string, version: string) {
 	return new Promise<void>((resolve, reject) => {
-		https.get(`${DOWNLOADURL}/${name}/${version}.zip`, async response => {
+		https.get(`${DOWNLOADURL}/${name}/${version}.zip`, response => {
 			const code = response.statusCode ?? 0;
 			if (code >= 400) {
 				reject(new Error(response.statusMessage));
@@ -54,7 +54,7 @@ async function downloadMod(name: string, version: string) {
 			const downloadSize = fileWriter.bytesWritten;
 			const percentage = parseFloat(((downloadSize / fileSize) * 100).toFixed(2));
 			console.log(`${ConsoleInteractions.ProgressBar((percentage / 10).toFixed(0))} ${percentage.toString()}%`);
-			const interval = setInterval(async () => {
+			const interval = setInterval(() => {
 				const actualPercentage = parseFloat(((fileWriter.bytesWritten / fileSize) * 100).toFixed(2));
 				ConsoleInteractions.clearLine();
 				console.log(`${ConsoleInteractions.ProgressBar((actualPercentage / 5).toFixed(0))} ${actualPercentage.toString()}%`);
@@ -89,14 +89,14 @@ async function fetchMod(name: string) {
 }
 
 async function searchMod(search: string) {
-	return new Promise<Array<Mod>>(async (resolve, reject) => {
+	return new Promise<Array<Mod>>(async resolve => {
 		const v = await axios.get(`${SEARCHURL}${search}`);
 		const $ = load(v.data);
 
 		const modList: Array<any> = [];
 
 		$('.mb0').each((i, el) => {
-			if (i % 2 == 1) {
+			if (i % 2) {
 				// @ts-ignore
 				let name: Array<string> = el?.children[0]?.next?.attribs?.href?.split('');
 				name.shift();
