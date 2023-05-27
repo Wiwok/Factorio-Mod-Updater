@@ -243,7 +243,7 @@ async function UpdateAllMods() {
 	let i = 0;
 	for (let Mod of localMods) {
 		const percentage = parseFloat((i / localMods.length * 100).toFixed(2));
-		console.log(`${ConsoleInteractions.ProgressBar((percentage / 5).toFixed(0))} ${percentage.toString()}%`)
+		console.log(`${ConsoleInteractions.ProgressBar((percentage / 5).toFixed(0))} ${percentage.toString()}%`);
 		newMods.push(await OnlineInteractions.fetchMod(Mod.name));
 		ConsoleInteractions.clearLine();
 		i++;
