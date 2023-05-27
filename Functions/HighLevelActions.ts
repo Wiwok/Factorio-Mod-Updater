@@ -43,7 +43,7 @@ async function InstallMod(mod: Mod, type: InstallType) {
 	});
 	ConsoleInteractions.clearLine();
 	console.log('[3/4] Unzipping...');
-	if (!OnlineInteractions.unzipMod()) {
+	if (!DataInteraction.unzip()) {
 		ConsoleInteractions.clearLine();
 		console.log(chalk.redBright('An error occurred while unzipping this mod.'));
 		return;

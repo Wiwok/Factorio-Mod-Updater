@@ -1,6 +1,9 @@
+import AdmZip from 'adm-zip';
 import fs from 'fs';
+import fse from 'fs-extra';
 
 import Mod from '../Classes/Mod';
+
 
 const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 const TEMPDIR = process.env.APPDATA + '/Factorio Mod Updater/';
@@ -58,6 +61,26 @@ function getModsList() {
 	return mods;
 }
 
+function unzipMod() {
+	try {
+		const zip = new AdmZip(TEMPDIR + 'mod.zip');
+		zip.extractAllTo(TEMPDIR + 'zip/', true);
+		const name = JSON.parse(fs.readFileSync(TEMPDIR + 'zip/' + fs.readdirSync(TEMPDIR + 'zip/')[0] + '/info.json').toString())?.name;
+		fse.moveSync(TEMPDIR + 'zip/' + fs.readdirSync(TEMPDIR + 'zip/')[0], TEMPDIR + 'mod/' + name);
+		fs.rmSync(TEMPDIR + 'mod.zip');
+		return true;
+	} catch (err) {
+		if (fs.existsSync(TEMPDIR + 'mod.zip')) {
+			fs.rmSync(TEMPDIR + 'mod.zip');
+		}
+
+		fs.rmdirSync(TEMPDIR + 'zip');
+		fs.mkdirSync(TEMPDIR + 'zip');
+
+		return false;
+	}
+}
+
 
 const DataInteraction = {
 	Installed: {
@@ -66,6 +89,7 @@ const DataInteraction = {
 		isInstalled: isModInstalled,
 		fetchMod: fetchInstalledMod
 	},
-	clearTemp: clearTempDir
+	clearTemp: clearTempDir,
+	unzip: unzipMod
 };
 export default DataInteraction;

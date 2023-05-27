@@ -1,9 +1,7 @@
-import AdmZip from 'adm-zip';
 import axios from 'axios';
 import { load } from 'cheerio';
 import dns from 'dns';
 import fs from 'fs';
-import fse from 'fs-extra';
 import https from 'https';
 
 import Mod from '../Classes/Mod';
@@ -16,26 +14,6 @@ const MODURL = 'https://mods.factorio.com/api/mods/';
 const SEARCHURL = 'https://mods.factorio.com/downloaded?version=1.1&query=';
 
 const DOWNLOADURL = 'https://factorio-launcher-mods.storage.googleapis.com';
-
-function unzipMod() {
-	try {
-		const zip = new AdmZip(MODTEMP + 'mod.zip');
-		zip.extractAllTo(MODTEMP + 'zip/', true);
-		const name = JSON.parse(fs.readFileSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0] + '/info.json').toString())?.name;
-		fse.moveSync(MODTEMP + 'zip/' + fs.readdirSync(MODTEMP + 'zip/')[0], MODTEMP + 'mod/' + name);
-		fs.rmSync(MODTEMP + 'mod.zip');
-		return true;
-	} catch (err) {
-		if (fs.existsSync(MODTEMP + 'mod.zip')) {
-			fs.rmSync(MODTEMP + 'mod.zip');
-		}
-
-		fs.rmdirSync(MODTEMP + 'zip');
-		fs.mkdirSync(MODTEMP + 'zip');
-
-		return false;
-	}
-}
 
 async function downloadMod(name: string, version: string) {
 	return new Promise<void>((resolve, reject) => {
@@ -139,5 +117,5 @@ async function checkInternet() {
 	});
 }
 
-const OnlineInteractions = { checkInternet, downloadMod, fetchMod, searchMod, unzipMod };
+const OnlineInteractions = { checkInternet, downloadMod, fetchMod, searchMod };
 export default OnlineInteractions;
