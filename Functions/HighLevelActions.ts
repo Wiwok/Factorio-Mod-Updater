@@ -175,13 +175,18 @@ async function CheckDependencies(mod: Mod) {
 	if (toInstall.length != 0) {
 		let toInstallMods: Array<Mod> = [];
 		let i = 0;
+		console.log(toInstall.length == 1 ? 'Fetching dependency...' : 'Fetching dependencies...');
 		for (let dep of toInstall) {
-			console.log('Fetching dependency [' + i + '/' + toInstall.length + ']...');
+			const percentage = parseFloat((i / toInstall.length * 100).toFixed(2));
+			console.log(`${ConsoleInteractions.ProgressBar((percentage / 5).toFixed(0))} ${percentage.toString()}%`);
 			const mod = await OnlineInteractions.fetchMod(dep.name);
 			ConsoleInteractions.clearLine();
 			i++;
-			toInstallMods.push(mod);
+			if (mod) {
+				toInstallMods.push(mod);
+			}
 		}
+		ConsoleInteractions.clearLine();
 
 		toInstall = toInstallMods.map(dep => {
 			return { name: dep.title, value: dep, checked: true };
@@ -212,13 +217,16 @@ async function CheckDependencies(mod: Mod) {
 
 		let toOptInstallMods: Array<Mod> = [];
 		let i = 0;
+		console.log(toOptInstall.length == 1 ? 'Fetching dependency...' : 'Fetching dependencies...');
 		for (let dep of toOptInstall) {
-			console.log('Fetching dependency [' + i + '/' + toOptInstall.length + ']...');
+			const percentage = parseFloat((i / toOptInstall.length * 100).toFixed(2));
+			console.log(`${ConsoleInteractions.ProgressBar((percentage / 5).toFixed(0))} ${percentage.toString()}%`);
 			const mod = await OnlineInteractions.fetchMod(dep.name);
 			ConsoleInteractions.clearLine();
 			i++;
 			toOptInstallMods.push(mod);
 		}
+		ConsoleInteractions.clearLine();
 
 		toOptInstall = toOptInstallMods.map(dep => {
 			return { name: dep.title, value: dep, checked: true };
