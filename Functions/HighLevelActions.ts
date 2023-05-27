@@ -74,7 +74,7 @@ async function InstallMod(mod: Mod, type: InstallType) {
 		console.log(chalk.bold(mod.title) + ' updated in ' + (timeNow / 1000).toFixed(2) + 's');
 	}
 
-	mod = DataInteraction.Installed.fetchMod(mod.name);
+	mod = DataInteraction.Installed.fetchMod(clearName(mod.name));
 	if (!CheckModState(mod)) {
 		console.log('');
 		console.log('❌This mod isn\'t working now.');
