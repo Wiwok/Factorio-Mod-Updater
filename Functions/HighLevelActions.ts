@@ -246,16 +246,11 @@ async function CheckDependencies(mod: Mod) {
 
 async function UpdateAllMods() {
 	const localMods = DataInteraction.Installed.getMods();
+	const modList = DataInteraction.Installed.getList();
 
-	const newMods: Array<Mod> = [];
-	let i = 0;
-	for (let Mod of localMods) {
-		const percentage = parseFloat((i / localMods.length * 100).toFixed(2));
-		console.log(`${ConsoleInteractions.ProgressBar((percentage / 5).toFixed(0))} ${percentage.toString()}%`);
-		newMods.push(await OnlineInteractions.fetchMod(Mod.name));
-		ConsoleInteractions.clearLine();
-		i++;
-	}
+	console.log('Fetching mods...');
+	const newMods = await OnlineInteractions.fetchMods(modList);
+	ConsoleInteractions.clearLine();
 
 	const upgradeMods: Array<Mod> = [];
 	newMods.forEach((newMod, i) => {

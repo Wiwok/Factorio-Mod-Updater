@@ -6,6 +6,7 @@ import https from 'https';
 
 import Mod from '../Classes/Mod';
 import ConsoleInteractions from './ConsoleInteractions';
+import DataInteraction from './DataInteraction';
 
 const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
 
@@ -66,6 +67,33 @@ async function fetchMod(name: string) {
 	});
 }
 
+async function fetchMods(Mods: Array<string>) {
+	return new Promise<Array<Mod>>(async resolve => {
+		const requests = Mods.map(mod => {
+			return axios.get(MODURL + mod);
+		});
+
+		axios.all(requests).then(responses => {
+			const ModList = responses.map(response => {
+				const datas = response.data;
+				try {
+					const title = datas?.title;
+					const version = datas?.releases[datas?.releases?.length - 1]?.version;
+					const author = datas?.owner;
+					const description = datas?.summary ?? undefined;
+
+					if ([title, author, version].includes(undefined)) {
+						return;
+					}
+
+					return new Mod(datas?.name, title, version, author, [], description);
+				} catch (err) { }
+			});
+			resolve(ModList);
+		}).catch();
+	});
+}
+
 async function searchMod(search: string) {
 	return new Promise<Array<Mod>>(async resolve => {
 		const v = await axios.get(`${SEARCHURL}${search}`);
@@ -117,5 +145,5 @@ async function checkInternet() {
 	});
 }
 
-const OnlineInteractions = { checkInternet, downloadMod, fetchMod, searchMod };
+const OnlineInteractions = { checkInternet, downloadMod, fetchMod, fetchMods, searchMod };
 export default OnlineInteractions;
