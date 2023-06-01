@@ -173,19 +173,8 @@ async function CheckDependencies(mod: Mod) {
 	});
 
 	if (toInstall.length != 0) {
-		let toInstallMods: Array<Mod> = [];
-		let i = 0;
-		console.log(toInstall.length == 1 ? 'Fetching dependency...' : 'Fetching dependencies...');
-		for (let dep of toInstall) {
-			const percentage = parseFloat((i / toInstall.length * 100).toFixed(2));
-			console.log(`${ConsoleInteractions.ProgressBar((percentage / 5).toFixed(0))} ${percentage.toString()}%`);
-			const mod = await OnlineInteractions.fetchMod(dep.name);
-			ConsoleInteractions.clearLine();
-			i++;
-			if (mod) {
-				toInstallMods.push(mod);
-			}
-		}
+		console.log('Fetching dependencies...');
+		let toInstallMods = await OnlineInteractions.fetchMods(toInstall.map(v => { return v.name }));
 		ConsoleInteractions.clearLine();
 
 		toInstall = toInstallMods.map(dep => {
@@ -196,7 +185,6 @@ async function CheckDependencies(mod: Mod) {
 		toInstallMods = await UserInteration.CheckBox('Select mods to install', toInstall);
 		console.log('');
 
-		i = 0;
 		for (let mod of toInstallMods) {
 			await InstallMod(mod, 'install');
 		}
@@ -215,17 +203,8 @@ async function CheckDependencies(mod: Mod) {
 
 		if (!next) return;
 
-		let toOptInstallMods: Array<Mod> = [];
-		let i = 0;
-		console.log(toOptInstall.length == 1 ? 'Fetching dependency...' : 'Fetching dependencies...');
-		for (let dep of toOptInstall) {
-			const percentage = parseFloat((i / toOptInstall.length * 100).toFixed(2));
-			console.log(`${ConsoleInteractions.ProgressBar((percentage / 5).toFixed(0))} ${percentage.toString()}%`);
-			const mod = await OnlineInteractions.fetchMod(dep.name);
-			ConsoleInteractions.clearLine();
-			i++;
-			toOptInstallMods.push(mod);
-		}
+		console.log('Fetching dependencies...');
+		let toOptInstallMods = await OnlineInteractions.fetchMods(toOptInstall.map(v => { return v.name }));
 		ConsoleInteractions.clearLine();
 
 		toOptInstall = toOptInstallMods.map(dep => {
@@ -236,7 +215,6 @@ async function CheckDependencies(mod: Mod) {
 		toOptInstallMods = await UserInteration.CheckBox('Select mods to install', toOptInstall);
 		console.log('');
 
-		i = 0;
 		for (let mod of toOptInstallMods) {
 			await InstallMod(mod, 'install');
 		}
