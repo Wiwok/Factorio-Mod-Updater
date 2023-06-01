@@ -24,7 +24,7 @@ async function InstallMod(mod: Mod, type: InstallType) {
 
 	const time = Date.now();
 	if (type == 'install') {
-		console.log('Installation of ' + chalk.bold(mod.title));
+		console.log('Installing ' + chalk.bold(mod.title));
 	} else {
 		console.log('Updating ' + chalk.bold(mod.title));
 	}
