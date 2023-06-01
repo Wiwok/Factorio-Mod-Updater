@@ -97,10 +97,7 @@ async function Manage() {
 		}
 	]);
 
-	if (Choice == 'cancel') {
-		UserInteration.GoBackToMenu;
-		return;
-	}
+	if (Choice == 'cancel') return;
 
 	const modList = DataInteraction.Installed.getMods();
 
