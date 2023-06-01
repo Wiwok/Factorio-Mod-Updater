@@ -1,2 +1,2 @@
-# Factorio Online Mod Updater
+# Factorio Mod Updater
 This is a tool made to update your factorio mods.
