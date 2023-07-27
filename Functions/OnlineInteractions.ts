@@ -6,7 +6,6 @@ import https from 'https';
 
 import Mod from '../Classes/Mod';
 import ConsoleInteractions from './ConsoleInteractions';
-import DataInteraction from './DataInteraction';
 
 const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
 
@@ -14,7 +13,7 @@ const MODURL = 'https://mods.factorio.com/api/mods/';
 
 const SEARCHURL = 'https://mods.factorio.com/downloaded?version=1.1&query=';
 
-const DOWNLOADURL = 'https://factorio-launcher-mods.storage.googleapis.com';
+const DOWNLOADURL = 'https://mods-storage.re146.dev';
 
 async function downloadMod(name: string, version: string) {
 	return new Promise<void>((resolve, reject) => {
