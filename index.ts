@@ -207,7 +207,7 @@ async function Manage() {
 
 			console.log('An update is available: ' + chalk.gray(localMod.version) + ' -> ' + chalk.underline(mod.version));
 			if (await UserInteration.Valid('Update it?')) {
-				await HighLevelActions.UpdateMod(mod);
+				await HighLevelActions.InstallMod(mod, 'update');
 			}
 		}
 	}

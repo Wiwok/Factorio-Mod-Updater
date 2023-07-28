@@ -14,7 +14,6 @@ const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 type InstallType = 'update' | 'install';
 
 async function InstallMod(mod: Mod, type: InstallType) {
-
 	function clearName(name: string) {
 		while (name.includes('%20')) {
 			name = name.replace('%20', ' ');
@@ -29,10 +28,12 @@ async function InstallMod(mod: Mod, type: InstallType) {
 		console.log('Updating ' + chalk.bold(mod.title));
 	}
 	console.log('[1/4] Checking...');
-	if (fs.existsSync(MODDIR + mod.name)) {
-		ConsoleInteractions.clearLine();
-		console.log('Mod already installed');
-		return;
+	if (type == 'install') {
+		if (fs.existsSync(MODDIR + mod.name)) {
+			ConsoleInteractions.clearLine();
+			console.log('Mod already installed');
+			return;
+		}
 	}
 	ConsoleInteractions.clearLine();
 	console.log('[2/4] Downloading...');
@@ -55,6 +56,9 @@ async function InstallMod(mod: Mod, type: InstallType) {
 		console.log('[4/4] Updating...');
 	}
 	try {
+		if (type == 'update') {
+			fs.rmSync(MODDIR + mod.name, { recursive: true, force: true });
+		}
 		fse.moveSync(MODTEMP + 'mod/' + clearName(mod.name), MODDIR + clearName(mod.name));
 	} catch (err) {
 		ConsoleInteractions.clearLine();
@@ -198,11 +202,8 @@ async function CheckDependencies(mod: Mod) {
 		}
 	});
 
-	if (toOptInstall.length != 0) {
-		const next = await UserInteration.Valid(toOptInstall.length + ' optionals dependencies are available. Do you wanna check them ?', false);
-
-		if (!next) return;
-
+	if (toOptInstall.length) {
+		if (!await UserInteration.Valid(toOptInstall.length + ' optionals dependencies are available. Do you wanna check them ?', false)) return;
 		console.log('Fetching dependencies...');
 		let toOptInstallMods = await OnlineInteractions.fetchMods(toOptInstall.map(v => { return v.name }));
 		ConsoleInteractions.clearLine();
@@ -255,7 +256,7 @@ async function UpdateAllMods() {
 	console.log('\n');
 
 	for (let mod of upgradeMods) {
-		await UpdateMod(mod);
+		await InstallMod(mod, 'update');
 	}
 
 	const newTime = Date.now() - time;
@@ -268,8 +269,7 @@ function IsModUnderDependency(mod: Mod) {
 		for (let dep of localMod.dependencies) {
 			if (dep.type == 'Required') {
 				if (dep.name == mod.name) {
-					const Dep = DataInteraction.Installed.fetchMod(localMod.name);
-					return Dep.title;
+					return DataInteraction.Installed.fetchMod(localMod.name).title;
 				}
 			}
 		}
@@ -277,12 +277,5 @@ function IsModUnderDependency(mod: Mod) {
 	return '';
 }
 
-async function UpdateMod(mod: Mod) {
-	UninstallMod(mod);
-	ConsoleInteractions.clearLine();
-	await InstallMod(mod, 'update');
-}
-
-
-const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, IsModUnderDependency, UninstallMod, UpdateAllMods, UpdateMod };
+const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, IsModUnderDependency, UninstallMod, UpdateAllMods };
 export default HighLevelActions;
