@@ -8,7 +8,7 @@ import HighLevelActions from './Functions/HighLevelActions';
 import OnlineInteractions from './Functions/OnlineInteractions';
 import UserInteration from './Functions/UserInteraction';
 
-const APPV = '2.4.3';
+const APPV = '2.4.4';
 
 async function Install() {
 	console.clear();
