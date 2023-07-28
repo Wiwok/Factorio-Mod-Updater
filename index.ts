@@ -34,8 +34,13 @@ async function Install() {
 			UserInteration.GoBackToMenu();
 			return;
 		}
-		modName = await UserInteration.Choices(modList.length + ' mods found:', modList);
-		mod = await OnlineInteractions.fetchMod(modName);
+		if (modList.length == 1) {
+			modName = modList[0].value;
+			mod = await OnlineInteractions.fetchMod(modName);
+		} else {
+			modName = await UserInteration.Choices(modList.length + ' mods found:', modList);
+			mod = await OnlineInteractions.fetchMod(modName);
+		}
 	}
 	if (DataInteraction.Installed.isInstalled(modName)) {
 		const mod = DataInteraction.Installed.fetchMod(modName);
