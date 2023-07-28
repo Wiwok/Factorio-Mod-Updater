@@ -22,6 +22,10 @@ async function Install() {
 
 
 	let modName = await UserInteration.Prompt('What mod do you want to install?');
+	if (modName == '') {
+		UserInteration.GoBackToMenu();
+		return;
+	}
 	let mod = await OnlineInteractions.fetchMod(modName).catch(() => { return; });
 	if (typeof mod == 'undefined') {
 		console.log('Searching...');
@@ -38,7 +42,9 @@ async function Install() {
 			modName = modList[0].value;
 			mod = await OnlineInteractions.fetchMod(modName);
 		} else {
-			modName = await UserInteration.Choices(modList.length + ' mods found:', modList);
+			modList.push({ name: chalk.red('Go back'), value: 'quit' });
+			modName = await UserInteration.Choices(modList.length - 1 + ' mods found:', modList);
+			if (modName == 'quit') return;
 			mod = await OnlineInteractions.fetchMod(modName);
 		}
 	}
