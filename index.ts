@@ -42,7 +42,7 @@ async function Install() {
 			modName = modList[0].value;
 			mod = await OnlineInteractions.fetchMod(modName);
 		} else {
-			modList.push({ name: chalk.red('Go back'), value: 'quit' });
+			modList.push({ name: chalk.redBright('Go back'), value: 'quit' });
 			modName = await UserInteration.Choices(modList.length - 1 + ' mods found:', modList);
 			if (modName == 'quit') return;
 			mod = await OnlineInteractions.fetchMod(modName);
@@ -295,7 +295,19 @@ function Starting() {
 		process.exit();
 	});
 
-	server.once('listening', main);
+	const FactorioState = HighLevelActions.IsGameRunning();
+	server.once('listening', () => {
+		FactorioState.then(v => {
+			if (v) {
+				console.log(chalk.redBright('Factorio is running. Please close the game'));
+				console.log('Press enter to quit...');
+				UserInteration.Pause();
+				console.clear();
+				process.exit();
+			}
+			main();
+		});
+	});
 }
 
 Starting();

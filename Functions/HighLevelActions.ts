@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { exec } from 'child_process';
 import fs from 'fs';
 import fse from 'fs-extra';
 
@@ -12,6 +13,14 @@ const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
 const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 
 type InstallType = 'update' | 'install';
+
+function IsGameRunning(): Promise<boolean> {
+	return new Promise(resolve => {
+		exec('tasklist', (err, stdout) => {
+			resolve(stdout.toLowerCase().indexOf('factorio.exe') > -1);
+		});
+	})
+}
 
 async function InstallMod(mod: Mod, type: InstallType) {
 	function clearName(name: string) {
@@ -277,5 +286,5 @@ function IsModUnderDependency(mod: Mod) {
 	return '';
 }
 
-const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, IsModUnderDependency, UninstallMod, UpdateAllMods };
+const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, IsGameRunning, IsModUnderDependency, UninstallMod, UpdateAllMods };
 export default HighLevelActions;
