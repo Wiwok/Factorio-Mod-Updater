@@ -70,12 +70,10 @@ async function Install() {
 	if (mod.description) {
 		console.log('Description:\n' + chalk.gray(mod.description));
 	}
-	if (!await UserInteration.Valid('Install it?')) {
-		UserInteration.GoBackToMenu();
-		return;
+	if (await UserInteration.Valid('Install it?')) {
+		console.log('');
+		await HighLevelActions.InstallMod(mod, 'install');
 	}
-	console.log('');
-	await HighLevelActions.InstallMod(mod, 'install');
 	UserInteration.GoBackToMenu();
 	return;
 }

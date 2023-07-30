@@ -60,7 +60,7 @@ async function fetchMod(name: string) {
 			}
 
 			resolve(new Mod(name, title, version, author, [], description));
-		} catch (err) {
+		} catch {
 			resolve(undefined);
 		}
 	});
@@ -86,7 +86,7 @@ async function fetchMods(Mods: Array<string>) {
 					}
 
 					return new Mod(datas?.name, title, version, author, [], description);
-				} catch (err) { }
+				} catch { }
 			});
 			resolve(ModList);
 		}).catch();
@@ -116,7 +116,6 @@ async function searchMod(search: string) {
 				modList.push({ name: name.join(''), title: title });
 			}
 		});
-
 
 		$('.orange').each((i, el) => {
 			const old = modList[i];

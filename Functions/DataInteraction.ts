@@ -23,31 +23,25 @@ function clearTempDir() {
 }
 
 function isModInstalled(name: string) {
-	const mods: Array<string> = [];
-	fs.readdirSync(MODDIR).forEach(v => {
-		if (fs.lstatSync(MODDIR + v).isDirectory()) {
-			mods.push(v);
-		}
-	});
-
-	return mods.includes(name);
+	return fs.existsSync(MODDIR + name + '/info.json');
 }
 
 function getInstalledMods() {
 	const mods: Array<Mod> = [];
 	fs.readdirSync(MODDIR).forEach(v => {
-		if (fs.lstatSync(MODDIR + v).isDirectory()) {
-			const tempMod = JSON.parse(fs.readFileSync(MODDIR + v + '/info.json').toString());
-			const mod = new Mod(tempMod.name, tempMod.title, tempMod.version, tempMod.author, tempMod?.dependencies, tempMod?.description);
-			mods.push(mod);
-		}
+		try {
+			if (fs.lstatSync(MODDIR + v).isDirectory()) {
+				const tempMod = JSON.parse(fs.readFileSync(MODDIR + v + '/info.json').toString());
+				const mod = new Mod(tempMod.name, tempMod.title, tempMod.version, tempMod.author, tempMod?.dependencies, tempMod?.description);
+				mods.push(mod);
+			}
+		} catch { }
 	});
 	return mods;
 }
 
 function fetchInstalledMod(name: string) {
 	if (!fs.existsSync(MODDIR + name)) {
-		console.log('Internal error: Mod not found.');
 		return;
 	}
 	const data = JSON.parse(fs.readFileSync(MODDIR + name + '/info.json').toString());
@@ -55,10 +49,9 @@ function fetchInstalledMod(name: string) {
 }
 
 function getModsList() {
-	const mods = fs.readdirSync(MODDIR).filter(mod => {
-		if (fs.lstatSync(MODDIR + '/' + mod).isDirectory()) return mod;
+	return fs.readdirSync(MODDIR).filter(mod => {
+		if (fs.existsSync(MODDIR + mod + '/info.json')) return mod;
 	});
-	return mods;
 }
 
 function unzipMod() {

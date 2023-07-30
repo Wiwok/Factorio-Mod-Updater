@@ -278,7 +278,7 @@ function IsModUnderDependency(mod: Mod) {
 		for (let dep of localMod.dependencies) {
 			if (dep.type == 'Required') {
 				if (dep.name == mod.name) {
-					return DataInteraction.Installed.fetchMod(localMod.name).title;
+					return localMod.title;
 				}
 			}
 		}
