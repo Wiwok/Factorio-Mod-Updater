@@ -170,7 +170,7 @@ async function CheckDependencies(mod: Mod) {
 		}
 	});
 
-	if (toRemove.length != 0) {
+	if (toRemove.length) {
 		console.log('Theses mods are in ' + chalk.redBright('CONFLICT') + ' with ' + chalk.bold(mod.title));
 		const choices: Array<Mod> = await UserInteration.CheckBox('Select mods to remove', toRemove);
 		console.log('');
@@ -185,14 +185,12 @@ async function CheckDependencies(mod: Mod) {
 		}
 	});
 
-	if (toInstall.length != 0) {
+	if (toInstall.length) {
 		console.log('Fetching dependencies...');
-		let toInstallMods = await OnlineInteractions.fetchMods(toInstall.map(v => { return v.name }));
+		let toInstallMods = await OnlineInteractions.fetchMods(toInstall.map(v => v.name));
 		ConsoleInteractions.clearLine();
 
-		toInstall = toInstallMods.map(dep => {
-			return { name: dep.title, value: dep, checked: true };
-		});
+		toInstall = toInstallMods.map(dep => { return { name: dep.title, value: dep, checked: true } });
 
 		console.log('Theses mods are ' + chalk.blueBright('REQUIRED') + ' for ' + chalk.bold(mod.title));
 		toInstallMods = await UserInteration.CheckBox('Select mods to install', toInstall);
@@ -214,12 +212,10 @@ async function CheckDependencies(mod: Mod) {
 	if (toOptInstall.length) {
 		if (!await UserInteration.Valid(toOptInstall.length + ' optionals dependencies are available. Do you wanna check them ?', false)) return;
 		console.log('Fetching dependencies...');
-		let toOptInstallMods = await OnlineInteractions.fetchMods(toOptInstall.map(v => { return v.name }));
+		let toOptInstallMods = await OnlineInteractions.fetchMods(toOptInstall.map(v => v.name));
 		ConsoleInteractions.clearLine();
 
-		toOptInstall = toOptInstallMods.map(dep => {
-			return { name: dep.title, value: dep, checked: true };
-		});
+		toOptInstall = toOptInstallMods.map(dep => { return { name: dep.title, value: dep, checked: true } });
 
 		console.log('Theses mods are ' + chalk.blueBright('OPTIONAL') + ' for ' + chalk.bold(mod.title));
 		toOptInstallMods = await UserInteration.CheckBox('Select mods to install', toOptInstall);
@@ -272,18 +268,18 @@ async function UpdateAllMods() {
 	console.log('Mods updated in ' + (newTime / 1000).toFixed(2) + 's');
 }
 
-function IsModUnderDependency(mod: Mod) {
+function IsModUnderDependency(mod: Mod): Mod {
 	const modList = DataInteraction.Installed.getMods();
 	for (let localMod of modList) {
 		for (let dep of localMod.dependencies) {
 			if (dep.type == 'Required') {
 				if (dep.name == mod.name) {
-					return localMod.title;
+					return localMod;
 				}
 			}
 		}
 	}
-	return '';
+	return;
 }
 
 const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, IsGameRunning, IsModUnderDependency, UninstallMod, UpdateAllMods };

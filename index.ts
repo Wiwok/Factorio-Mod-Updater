@@ -170,9 +170,9 @@ async function Manage() {
 			if (await UserInteration.Valid('Do you want to uninstall it?')) {
 				console.log('');
 				const dep = HighLevelActions.IsModUnderDependency(mod);
-				if (dep != '') {
+				if (typeof dep != 'undefined') {
 					console.log(chalk.redBright('⚠️WARNING⚠️'));
-					console.log('This mod is required for ' + chalk.bold(dep) + ' to work.');
+					console.log('This mod is required for ' + chalk.bold(dep.title) + ' to work.');
 					if (await UserInteration.Valid('Do you want to uninstall it anyway?', false)) {
 						HighLevelActions.UninstallMod(mod);
 					}
