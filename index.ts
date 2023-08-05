@@ -49,18 +49,32 @@ async function Install() {
 		}
 	}
 	if (DataInteraction.Installed.isInstalled(modName)) {
-		const mod = DataInteraction.Installed.fetchMod(modName);
-		if (typeof mod == 'undefined') {
+		const LocalMod = DataInteraction.Installed.fetchMod(modName);
+		if (typeof LocalMod == 'undefined') {
 			UserInteration.GoBackToMenu();
 			return;
 		}
 		console.log('Mod: ' + chalk.bold(mod.title));
 		console.log('Author: ' + mod.author);
-		console.log('Version: ' + mod.version);
-		if (mod.description) {
-			console.log('Description:\n' + mod.description);
+		if (mod.version != LocalMod.version) {
+			console.log('Version: ' + chalk.gray(LocalMod.version) + ' -> ' + chalk.underline(mod.version));
+			if (mod.description) {
+				console.log('Description:\n' + mod.description);
+			}
+			console.log('');
+			console.log(chalk.yellow('This mod is already installed but an update is available.'));
+			if (await UserInteration.Valid('Would you like to update it ?', true)) {
+				console.log('');
+				await HighLevelActions.InstallMod(mod, 'update');
+			}
 		}
-		console.log(chalk.yellow('This mod is already installed'));
+		else {
+			console.log('Version: ' + mod.version);
+			if (mod.description) {
+				console.log('Description:\n' + mod.description);
+			}
+			console.log(chalk.yellow('This mod is already installed'));
+		}
 		UserInteration.GoBackToMenu();
 		return;
 	}
