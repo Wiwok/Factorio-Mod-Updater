@@ -20,7 +20,7 @@
 		"prompt-sync": "^4.2.0"
 	},
 	"devDependencies": {
-		"@types/adm-zip": "^0.5.0",
+		"@types/adm-zip": "^0.5.1",
 		"@types/fs-extra": "^11.0.1",
 		"@types/inquirer": "^9.0.3",
 		"@types/prompt-sync": "^4.2.0"
