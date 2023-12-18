@@ -11,18 +11,18 @@
 	"license": "ISC",
 	"dependencies": {
 		"adm-zip": "^0.5.10",
-		"axios": "^1.5.1",
+		"axios": "^1.6.2",
 		"chalk": "^4.1.2",
 		"cheerio": "^1.0.0-rc.12",
-		"fs-extra": "^11.1.1",
+		"fs-extra": "^11.2.0",
 		"https": "^1.0.0",
 		"inquirer": "^8.2.4",
 		"prompt-sync": "^4.2.0"
 	},
 	"devDependencies": {
-		"@types/adm-zip": "^0.5.2",
-		"@types/fs-extra": "^11.0.2",
-		"@types/inquirer": "^9.0.3",
-		"@types/prompt-sync": "^4.2.1"
+		"@types/adm-zip": "^0.5.5",
+		"@types/fs-extra": "^11.0.4",
+		"@types/inquirer": "^9.0.7",
+		"@types/prompt-sync": "^4.2.3"
 	}
 }
