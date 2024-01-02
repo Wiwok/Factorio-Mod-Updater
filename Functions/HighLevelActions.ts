@@ -19,17 +19,10 @@ function IsGameRunning(): Promise<boolean> {
 		exec('tasklist', (err, stdout) => {
 			resolve(stdout.toLowerCase().indexOf('factorio.exe') > -1);
 		});
-	})
+	});
 }
 
 async function InstallMod(mod: Mod, type: InstallType) {
-	function clearName(name: string) {
-		while (name.includes('%20')) {
-			name = name.replace('%20', ' ');
-		}
-		return name;
-	}
-
 	const time = Date.now();
 	if (type == 'install') {
 		console.log('Installing ' + chalk.bold(mod.title));
@@ -38,7 +31,7 @@ async function InstallMod(mod: Mod, type: InstallType) {
 	}
 	console.log('[1/4] Checking...');
 	if (type == 'install') {
-		if (fs.existsSync(MODDIR + mod.name)) {
+		if (fs.existsSync(MODDIR + DataInteraction.clearName(mod.name))) {
 			ConsoleInteractions.clearLine();
 			console.log('Mod already installed');
 			return;
@@ -68,7 +61,10 @@ async function InstallMod(mod: Mod, type: InstallType) {
 		if (type == 'update') {
 			fs.rmSync(MODDIR + mod.name, { recursive: true, force: true });
 		}
-		fse.moveSync(MODTEMP + 'mod/' + clearName(mod.name), MODDIR + clearName(mod.name));
+		fse.moveSync(
+			MODTEMP + 'mod/' + DataInteraction.clearName(mod.name),
+			MODDIR + DataInteraction.clearName(mod.name)
+		);
 	} catch (err) {
 		ConsoleInteractions.clearLine();
 		if (type == 'install') {
@@ -87,10 +83,10 @@ async function InstallMod(mod: Mod, type: InstallType) {
 		console.log(chalk.bold(mod.title) + ' updated in ' + (timeNow / 1000).toFixed(2) + 's');
 	}
 
-	mod = DataInteraction.Installed.fetchMod(clearName(mod.name));
+	mod = DataInteraction.Installed.fetchMod(mod.name);
 	if (!CheckModState(mod)) {
 		console.log('');
-		console.log('❌This mod isn\'t working now.');
+		console.log("❌This mod isn't working now.");
 		if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
 			await HighLevelActions.CheckDependencies(mod);
 		}
@@ -141,7 +137,6 @@ function CheckModState(mod: Mod) {
 }
 
 async function CheckDependencies(mod: Mod) {
-
 	const AllDependencies = mod.dependencies;
 
 	if (AllDependencies.length == 0) {
@@ -166,7 +161,11 @@ async function CheckDependencies(mod: Mod) {
 	ConflictsDeps.forEach(dep => {
 		if (DataInteraction.Installed.isInstalled(dep.name)) {
 			const dependency = DataInteraction.Installed.fetchMod(dep.name);
-			toRemove.push({ name: dependency.title, value: dependency, checked: true });
+			toRemove.push({
+				name: dependency.title,
+				value: dependency,
+				checked: true
+			});
 		}
 	});
 
@@ -190,7 +189,9 @@ async function CheckDependencies(mod: Mod) {
 		let toInstallMods = await OnlineInteractions.fetchMods(toInstall.map(v => v.name));
 		ConsoleInteractions.clearLine();
 
-		toInstall = toInstallMods.map(dep => { return { name: dep.title, value: dep, checked: true } });
+		toInstall = toInstallMods.map(dep => {
+			return { name: dep.title, value: dep, checked: true };
+		});
 
 		console.log('Theses mods are ' + chalk.blueBright('REQUIRED') + ' for ' + chalk.bold(mod.title));
 		toInstallMods = await UserInteration.CheckBox('Select mods to install', toInstall);
@@ -210,12 +211,20 @@ async function CheckDependencies(mod: Mod) {
 	});
 
 	if (toOptInstall.length) {
-		if (!await UserInteration.Valid(toOptInstall.length + ' optionals dependencies are available. Do you wanna check them ?', false)) return;
+		if (
+			!(await UserInteration.Valid(
+				toOptInstall.length + ' optionals dependencies are available. Do you wanna check them ?',
+				false
+			))
+		)
+			return;
 		console.log('Fetching dependencies...');
 		let toOptInstallMods = await OnlineInteractions.fetchMods(toOptInstall.map(v => v.name));
 		ConsoleInteractions.clearLine();
 
-		toOptInstall = toOptInstallMods.map(dep => { return { name: dep.title, value: dep, checked: true } });
+		toOptInstall = toOptInstallMods.map(dep => {
+			return { name: dep.title, value: dep, checked: true };
+		});
 
 		console.log('Theses mods are ' + chalk.blueBright('OPTIONAL') + ' for ' + chalk.bold(mod.title));
 		toOptInstallMods = await UserInteration.CheckBox('Select mods to install', toOptInstall);
@@ -225,7 +234,6 @@ async function CheckDependencies(mod: Mod) {
 			await InstallMod(mod, 'install');
 		}
 	}
-
 }
 
 async function UpdateAllMods() {
@@ -243,7 +251,13 @@ async function UpdateAllMods() {
 			if (upgradeMods.length == 0) {
 				console.log('Mods to update :\n');
 			}
-			console.log(chalk.bold(localMod.title) + ': ' + chalk.gray(localMod.version) + ' -> ' + chalk.underline(newMod.version));
+			console.log(
+				chalk.bold(localMod.title) +
+					': ' +
+					chalk.gray(localMod.version) +
+					' -> ' +
+					chalk.underline(newMod.version)
+			);
 			upgradeMods.push(newMod);
 		}
 	});
@@ -253,7 +267,7 @@ async function UpdateAllMods() {
 	}
 	const message = upgradeMods.length == 1 ? 'Update it?' : 'Update them?';
 
-	if (!await UserInteration.Valid(message)) {
+	if (!(await UserInteration.Valid(message))) {
 		return;
 	}
 
@@ -282,5 +296,13 @@ function IsModUnderDependency(mod: Mod): Mod {
 	return;
 }
 
-const HighLevelActions = { CheckDependencies, CheckModState, InstallMod, IsGameRunning, IsModUnderDependency, UninstallMod, UpdateAllMods };
+const HighLevelActions = {
+	CheckDependencies,
+	CheckModState,
+	InstallMod,
+	IsGameRunning,
+	IsModUnderDependency,
+	UninstallMod,
+	UpdateAllMods
+};
 export default HighLevelActions;

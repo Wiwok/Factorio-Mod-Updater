@@ -17,30 +17,37 @@ const DOWNLOADURL = 'https://mods-storage.re146.dev';
 
 async function downloadMod(name: string, version: string) {
 	return new Promise<void>((resolve, reject) => {
-		https.get(`${DOWNLOADURL}/${name}/${version}.zip`, response => {
-			const code = response.statusCode ?? 0;
-			if (code >= 400) {
-				reject(new Error(response.statusMessage));
-			}
-			const fileWriter = fs.createWriteStream(MODTEMP + 'mod.zip')
-				.on('finish', () => {
+		https
+			.get(`${DOWNLOADURL}/${name}/${version}.zip`, response => {
+				const code = response.statusCode ?? 0;
+				if (code >= 400) {
+					reject(new Error(response.statusMessage));
+				}
+				const fileWriter = fs.createWriteStream(MODTEMP + 'mod.zip').on('finish', () => {
 					clearInterval(interval);
 					ConsoleInteractions.clearLine();
 					resolve();
 				});
-			const fileSize = parseInt(response.headers['content-length'] as string, 10);
-			const downloadSize = fileWriter.bytesWritten;
-			const percentage = parseFloat(((downloadSize / fileSize) * 100).toFixed(2));
-			console.log(`${ConsoleInteractions.ProgressBar((percentage / 10).toFixed(0))} ${percentage.toString()}%`);
-			const interval = setInterval(() => {
-				const actualPercentage = parseFloat(((fileWriter.bytesWritten / fileSize) * 100).toFixed(2));
-				ConsoleInteractions.clearLine();
-				console.log(`${ConsoleInteractions.ProgressBar((actualPercentage / 5).toFixed(0))} ${actualPercentage.toString()}%`);
-			}, 50);
-			response.pipe(fileWriter);
-		}).on('error', error => {
-			reject(error);
-		});
+				const fileSize = parseInt(response.headers['content-length'] as string, 10);
+				const downloadSize = fileWriter.bytesWritten;
+				const percentage = parseFloat(((downloadSize / fileSize) * 100).toFixed(2));
+				console.log(
+					`${ConsoleInteractions.ProgressBar((percentage / 10).toFixed(0))} ${percentage.toString()}%`
+				);
+				const interval = setInterval(() => {
+					const actualPercentage = parseFloat(((fileWriter.bytesWritten / fileSize) * 100).toFixed(2));
+					ConsoleInteractions.clearLine();
+					console.log(
+						`${ConsoleInteractions.ProgressBar(
+							(actualPercentage / 5).toFixed(0)
+						)} ${actualPercentage.toString()}%`
+					);
+				}, 50);
+				response.pipe(fileWriter);
+			})
+			.on('error', error => {
+				reject(error);
+			});
 	});
 }
 
@@ -72,24 +79,27 @@ async function fetchMods(Mods: Array<string>) {
 			return axios.get(MODURL + mod);
 		});
 
-		axios.all(requests).then(responses => {
-			const ModList = responses.map(response => {
-				const datas = response.data;
-				try {
-					const title = datas?.title;
-					const version = datas?.releases[datas?.releases?.length - 1]?.version;
-					const author = datas?.owner;
-					const description = datas?.summary ?? undefined;
+		axios
+			.all(requests)
+			.then(responses => {
+				const ModList = responses.map(response => {
+					const datas = response.data;
+					try {
+						const title = datas?.title;
+						const version = datas?.releases[datas?.releases?.length - 1]?.version;
+						const author = datas?.owner;
+						const description = datas?.summary ?? undefined;
 
-					if ([title, author, version].includes(undefined)) {
-						return;
-					}
+						if ([title, author, version].includes(undefined)) {
+							return;
+						}
 
-					return new Mod(datas?.name, title, version, author, [], description);
-				} catch { }
-			});
-			resolve(ModList);
-		}).catch();
+						return new Mod(datas?.name, title, version, author, [], description);
+					} catch {}
+				});
+				resolve(ModList);
+			})
+			.catch();
 	});
 }
 
@@ -129,7 +139,11 @@ async function searchMod(search: string) {
 			modList[i] = { name: old.name, title: old.title, author: old.author, description: el?.children[0]?.data };
 		});
 
-		resolve(modList.map(v => { return new Mod(v.name, v.title, 'Unknown', v.author, [], v.description); }));
+		resolve(
+			modList.map(v => {
+				return new Mod(v.name, v.title, 'Unknown', v.author, [], v.description);
+			})
+		);
 	});
 }
 

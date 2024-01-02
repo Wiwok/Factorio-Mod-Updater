@@ -8,25 +8,26 @@ import HighLevelActions from './Functions/HighLevelActions';
 import OnlineInteractions from './Functions/OnlineInteractions';
 import UserInteration from './Functions/UserInteraction';
 
-const APPV = '2.4.6';
+const APPV = '2.4.7';
 
 async function Install() {
 	console.clear();
 	console.log(chalk.bgGray('Install a mod') + '\n');
 
-	if (!await OnlineInteractions.checkInternet()) {
+	if (!(await OnlineInteractions.checkInternet())) {
 		console.log(chalk.redBright('Please check your internet connection'));
 		UserInteration.GoBackToMenu();
 		return;
 	}
-
 
 	let modName = await UserInteration.Prompt('What mod do you want to install?');
 	if (modName == '') {
 		UserInteration.GoBackToMenu();
 		return;
 	}
-	let mod = await OnlineInteractions.fetchMod(modName).catch(() => { return; });
+	let mod = await OnlineInteractions.fetchMod(modName).catch(() => {
+		return;
+	});
 	if (typeof mod == 'undefined') {
 		console.log('Searching...');
 		const modList = (await OnlineInteractions.searchMod(modName)).map(v => {
@@ -67,8 +68,7 @@ async function Install() {
 				console.log('');
 				await HighLevelActions.InstallMod(mod, 'update');
 			}
-		}
-		else {
+		} else {
 			console.log('Version: ' + mod.version);
 			if (mod.description) {
 				console.log('Description:\n' + mod.description);
@@ -108,13 +108,16 @@ async function Manage() {
 		{
 			name: 'Update a mod',
 			value: 'update'
-		}, {
+		},
+		{
 			name: 'Check a mod',
 			value: 'check'
-		}, {
+		},
+		{
 			name: 'Uninstall a mod',
 			value: 'uninstall'
-		}, {
+		},
+		{
 			name: 'Cancel',
 			value: 'cancel'
 		}
@@ -143,14 +146,14 @@ async function Manage() {
 				});
 			}
 		} else if (Choice == 'check') {
-			if (!await OnlineInteractions.checkInternet()) {
+			if (!(await OnlineInteractions.checkInternet())) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
 			}
 			for (let mod of modList) {
 				if (!HighLevelActions.CheckModState(mod)) {
-					console.log('❌' + chalk.bold(mod.title) + ' isn\'t working now.');
+					console.log('❌' + chalk.bold(mod.title) + " isn't working now.");
 					if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
 						await HighLevelActions.CheckDependencies(mod);
 					}
@@ -158,7 +161,7 @@ async function Manage() {
 			}
 			console.log('Done !');
 		} else if (Choice == 'update') {
-			if (!await OnlineInteractions.checkInternet()) {
+			if (!(await OnlineInteractions.checkInternet())) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
@@ -195,7 +198,7 @@ async function Manage() {
 				}
 			}
 		} else if (Choice == 'check') {
-			if (!await OnlineInteractions.checkInternet()) {
+			if (!(await OnlineInteractions.checkInternet())) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
@@ -207,13 +210,13 @@ async function Manage() {
 					await HighLevelActions.CheckDependencies(mod);
 				}
 			} else {
-				console.log('❌This mod isn\'t working now.');
+				console.log("❌This mod isn't working now.");
 				if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
 					await HighLevelActions.CheckDependencies(mod);
 				}
 			}
 		} else if (Choice == 'update') {
-			if (!await OnlineInteractions.checkInternet()) {
+			if (!(await OnlineInteractions.checkInternet())) {
 				console.log(chalk.redBright('Please check your internet connection'));
 				UserInteration.GoBackToMenu();
 				return;
@@ -228,7 +231,9 @@ async function Manage() {
 				return;
 			}
 
-			console.log('An update is available: ' + chalk.gray(localMod.version) + ' -> ' + chalk.underline(mod.version));
+			console.log(
+				'An update is available: ' + chalk.gray(localMod.version) + ' -> ' + chalk.underline(mod.version)
+			);
 			if (await UserInteration.Valid('Update it?')) {
 				await HighLevelActions.InstallMod(mod, 'update');
 			}
@@ -261,9 +266,15 @@ async function main() {
 			{ name: 'Quit', value: 'exit' }
 		]);
 		switch (nav) {
-			case 'install': await Install(); break;
-			case 'manage': await Manage(); break;
-			case 'about': About(); break;
+			case 'install':
+				await Install();
+				break;
+			case 'manage':
+				await Manage();
+				break;
+			case 'about':
+				About();
+				break;
 			case 'exit': {
 				console.clear();
 				exit = true;
@@ -300,7 +311,7 @@ function Starting() {
 	server.unref();
 
 	server.on('error', () => {
-		console.log(chalk.redBright('Factorio Mod Updater is already running. Can\'t run more than one instance.'));
+		console.log(chalk.redBright("Factorio Mod Updater is already running. Can't run more than one instance."));
 		console.log('Press enter to quit...');
 		UserInteration.Pause();
 		console.clear();

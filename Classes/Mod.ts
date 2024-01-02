@@ -55,12 +55,12 @@ function CleanDependency(dependency: string) {
 	}
 }
 
-type DependencyState = 'Required' | 'Optional' | 'Conflict'
+type DependencyState = 'Required' | 'Optional' | 'Conflict';
 
 class Dependency {
-	name: string
-	version: string | undefined = undefined
-	type: DependencyState
+	name: string;
+	version: string | undefined = undefined;
+	type: DependencyState;
 	constructor(name: string, type: DependencyState, version?: string) {
 		this.name = name;
 		this.type = type;
@@ -71,19 +71,26 @@ class Dependency {
 }
 
 class Mod {
-	name: string = ''
-	title: string = ''
-	description: string | undefined = undefined
-	version: string = ''
-	author: string = ''
-	dependencies: Array<Dependency> = []
-	constructor(name: string, title: string, version: string, author: string, dependencies?: Array<string>, description?: string) {
+	name: string = '';
+	title: string = '';
+	description: string | undefined = undefined;
+	version: string = '';
+	author: string = '';
+	dependencies: Array<Dependency> = [];
+	constructor(
+		name: string,
+		title: string,
+		version: string,
+		author: string,
+		dependencies?: Array<string>,
+		description?: string
+	) {
 		this.name = name;
 		this.title = title;
 		this.version = version;
 		this.author = author;
 
-		if (typeof description != "undefined" && description.length != 0) {
+		if (typeof description != 'undefined' && description.length != 0) {
 			this.description = description;
 		}
 
