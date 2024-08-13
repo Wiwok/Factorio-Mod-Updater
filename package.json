@@ -4,14 +4,14 @@
 	"description": "This is a tool made to update your factorio mods.",
 	"main": "index.ts",
 	"scripts": {
-		"start": "npx ts-node index.ts",
+		"start": "ts-node index.ts",
 		"build": "tsc && ncc build -o build/ ./build/code/index.js && pkg --compress GZip --target node18-win-x64 -o build/Factorio-Mod-Updater.exe ./build/index.js"
 	},
 	"author": "Wiwok",
 	"license": "ISC",
 	"dependencies": {
-		"adm-zip": "^0.5.10",
-		"axios": "^1.6.3",
+		"adm-zip": "^0.5.12",
+		"axios": "^1.7.2",
 		"chalk": "^4.1.2",
 		"cheerio": "^1.0.0-rc.12",
 		"fs-extra": "^11.2.0",
