@@ -3,6 +3,7 @@
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
 		"moduleResolution": "node",
-		"outDir": "build/code"
+		"outDir": "build/code",
+		"skipLibCheck": true
 	}
 }
