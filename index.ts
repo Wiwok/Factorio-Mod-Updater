@@ -66,7 +66,7 @@ async function Install() {
 			console.log(chalk.yellow('This mod is already installed but an update is available.'));
 			if (await UserInteration.Valid('Would you like to update it ?', true)) {
 				console.log('');
-				await HighLevelActions.InstallMod(mod, 'update');
+				await HighLevelActions.installMod(mod, 'update');
 			}
 		} else {
 			console.log('Version: ' + mod.version);
@@ -86,7 +86,7 @@ async function Install() {
 	}
 	if (await UserInteration.Valid('Install it?')) {
 		console.log('');
-		await HighLevelActions.InstallMod(mod, 'install');
+		await HighLevelActions.installMod(mod, 'install');
 	}
 	UserInteration.GoBackToMenu();
 	return;
@@ -142,7 +142,7 @@ async function Manage() {
 			if (await UserInteration.Valid('Do you want to remove ALL of your mods?', false)) {
 				console.log('');
 				modList.forEach(mod => {
-					HighLevelActions.UninstallMod(mod);
+					HighLevelActions.uninstallMod(mod);
 				});
 			}
 		} else if (Choice == 'check') {
@@ -152,10 +152,10 @@ async function Manage() {
 				return;
 			}
 			for (let mod of modList) {
-				if (!HighLevelActions.CheckModState(mod)) {
+				if (!HighLevelActions.checkModState(mod)) {
 					console.log('❌' + chalk.bold(mod.title) + " isn't working now.");
 					if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
-						await HighLevelActions.CheckDependencies(mod);
+						await HighLevelActions.checkDependencies(mod);
 					}
 				}
 			}
@@ -167,7 +167,7 @@ async function Manage() {
 				return;
 			}
 
-			await HighLevelActions.UpdateAllMods();
+			await HighLevelActions.updateAllMods();
 		}
 	} else {
 		const mod = DataInteraction.Installed.fetchMod(modName);
@@ -186,15 +186,15 @@ async function Manage() {
 		if (Choice == 'uninstall') {
 			if (await UserInteration.Valid('Do you want to uninstall it?')) {
 				console.log('');
-				const dep = HighLevelActions.IsModUnderDependency(mod);
+				const dep = HighLevelActions.isModUnderDependency(mod);
 				if (typeof dep != 'undefined') {
 					console.log(chalk.redBright('⚠️WARNING⚠️'));
 					console.log('This mod is required for ' + chalk.bold(dep.title) + ' to work.');
 					if (await UserInteration.Valid('Do you want to uninstall it anyway?', false)) {
-						HighLevelActions.UninstallMod(mod);
+						HighLevelActions.uninstallMod(mod);
 					}
 				} else {
-					HighLevelActions.UninstallMod(mod);
+					HighLevelActions.uninstallMod(mod);
 				}
 			}
 		} else if (Choice == 'check') {
@@ -203,16 +203,16 @@ async function Manage() {
 				UserInteration.GoBackToMenu();
 				return;
 			}
-			if (HighLevelActions.CheckModState(mod)) {
+			if (HighLevelActions.checkModState(mod)) {
 				console.log('✅This mod is ready to be used.');
 				const next = await UserInteration.Valid('Would you like to perform a dependency check anyway?', false);
 				if (next) {
-					await HighLevelActions.CheckDependencies(mod);
+					await HighLevelActions.checkDependencies(mod);
 				}
 			} else {
 				console.log("❌This mod isn't working now.");
 				if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
-					await HighLevelActions.CheckDependencies(mod);
+					await HighLevelActions.checkDependencies(mod);
 				}
 			}
 		} else if (Choice == 'update') {
@@ -235,7 +235,7 @@ async function Manage() {
 				'An update is available: ' + chalk.gray(localMod.version) + ' -> ' + chalk.underline(mod.version)
 			);
 			if (await UserInteration.Valid('Update it?')) {
-				await HighLevelActions.InstallMod(mod, 'update');
+				await HighLevelActions.installMod(mod, 'update');
 			}
 		}
 	}
@@ -318,11 +318,11 @@ function Starting() {
 		process.exit();
 	});
 
-	const FactorioState = HighLevelActions.IsGameRunning();
+	const FactorioState = HighLevelActions.isGameRunning();
 	server.once('listening', () => {
 		FactorioState.then(v => {
 			if (v) {
-				console.log(chalk.redBright('Factorio is running. Please close the game'));
+				console.log(chalk.redBright('Factorio is running. Please close the game to avoid file corruption'));
 				console.log('Press enter to quit...');
 				UserInteration.Pause();
 				console.clear();

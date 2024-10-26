@@ -14,7 +14,7 @@ const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 
 type InstallType = 'update' | 'install';
 
-function IsGameRunning(): Promise<boolean> {
+function isGameRunning(): Promise<boolean> {
 	return new Promise(resolve => {
 		exec('tasklist', (err, stdout) => {
 			resolve(stdout.toLowerCase().indexOf('factorio.exe') > -1);
@@ -22,7 +22,7 @@ function IsGameRunning(): Promise<boolean> {
 	});
 }
 
-async function InstallMod(mod: Mod, type: InstallType) {
+async function installMod(mod: Mod, type: InstallType) {
 	const time = Date.now();
 	if (type == 'install') {
 		console.log('Installing ' + chalk.bold(mod.title));
@@ -84,23 +84,23 @@ async function InstallMod(mod: Mod, type: InstallType) {
 	}
 
 	mod = DataInteraction.Installed.fetchMod(mod.name);
-	if (!CheckModState(mod)) {
+	if (!checkModState(mod)) {
 		console.log('');
 		console.log("❌This mod isn't working now.");
 		if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
-			await HighLevelActions.CheckDependencies(mod);
+			await checkDependencies(mod);
 		}
 	}
 }
 
-function UninstallMod(mod: Mod) {
+function uninstallMod(mod: Mod) {
 	console.log('Uninstalling ' + chalk.bold(mod.title) + '...');
 	fs.rmSync(MODDIR + mod.name, { recursive: true, force: true });
 	ConsoleInteractions.clearLine();
 	console.log('Successfully uninstalled ' + chalk.bold(mod.title));
 }
 
-function CheckModState(mod: Mod) {
+function checkModState(mod: Mod) {
 	const AllDependencies = mod.dependencies;
 
 	if (AllDependencies.length == 0) {
@@ -128,6 +128,7 @@ function CheckModState(mod: Mod) {
 
 	// Check required
 	RequiredDeps.forEach(dep => {
+		if (dep.name == 'base') return;
 		if (!DataInteraction.Installed.isInstalled(dep.name)) {
 			state = false;
 		}
@@ -136,7 +137,7 @@ function CheckModState(mod: Mod) {
 	return state;
 }
 
-async function CheckDependencies(mod: Mod) {
+async function checkDependencies(mod: Mod) {
 	const AllDependencies = mod.dependencies;
 
 	if (AllDependencies.length == 0) {
@@ -173,12 +174,13 @@ async function CheckDependencies(mod: Mod) {
 		console.log('Theses mods are in ' + chalk.redBright('CONFLICT') + ' with ' + chalk.bold(mod.title));
 		const choices: Array<Mod> = await UserInteration.CheckBox('Select mods to remove', toRemove);
 		console.log('');
-		choices.forEach(UninstallMod);
+		choices.forEach(uninstallMod);
 	}
 
 	// Check required
 	let toInstall: Array<any> = [];
 	RequiredDeps.forEach(dep => {
+		if (dep.name == 'base') return;
 		if (!DataInteraction.Installed.isInstalled(dep.name)) {
 			toInstall.push(dep);
 		}
@@ -198,7 +200,7 @@ async function CheckDependencies(mod: Mod) {
 		console.log('');
 
 		for (let mod of toInstallMods) {
-			await InstallMod(mod, 'install');
+			await installMod(mod, 'install');
 		}
 	}
 
@@ -231,12 +233,12 @@ async function CheckDependencies(mod: Mod) {
 		console.log('');
 
 		for (let mod of toOptInstallMods) {
-			await InstallMod(mod, 'install');
+			await installMod(mod, 'install');
 		}
 	}
 }
 
-async function UpdateAllMods() {
+async function updateAllMods() {
 	const localMods = DataInteraction.Installed.getMods();
 	const modList = DataInteraction.Installed.getList();
 
@@ -275,14 +277,14 @@ async function UpdateAllMods() {
 	console.log('\n');
 
 	for (let mod of upgradeMods) {
-		await InstallMod(mod, 'update');
+		await installMod(mod, 'update');
 	}
 
 	const newTime = Date.now() - time;
 	console.log('Mods updated in ' + (newTime / 1000).toFixed(2) + 's');
 }
 
-function IsModUnderDependency(mod: Mod): Mod {
+function isModUnderDependency(mod: Mod) {
 	const modList = DataInteraction.Installed.getMods();
 	for (let localMod of modList) {
 		for (let dep of localMod.dependencies) {
@@ -297,12 +299,12 @@ function IsModUnderDependency(mod: Mod): Mod {
 }
 
 const HighLevelActions = {
-	CheckDependencies,
-	CheckModState,
-	InstallMod,
-	IsGameRunning,
-	IsModUnderDependency,
-	UninstallMod,
-	UpdateAllMods
+	checkDependencies,
+	checkModState,
+	installMod,
+	isGameRunning,
+	isModUnderDependency,
+	uninstallMod,
+	updateAllMods
 };
 export default HighLevelActions;

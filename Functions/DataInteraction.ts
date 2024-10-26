@@ -68,7 +68,7 @@ function getModsList() {
 	});
 }
 
-function unzipMod() {
+function unzip() {
 	try {
 		const zip = new AdmZip(TEMPDIR + 'mod.zip');
 		zip.extractAllTo(TEMPDIR + 'zip/', true);
@@ -98,8 +98,8 @@ const DataInteraction = {
 		fetchMod: fetchInstalledMod
 	},
 	clearTemp: clearTempDir,
-	unzip: unzipMod,
-	clearName: clearName
+	unzip,
+	clearName
 };
 
 export default DataInteraction;

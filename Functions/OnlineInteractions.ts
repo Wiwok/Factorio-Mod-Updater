@@ -11,7 +11,7 @@ const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
 
 const MODURL = 'https://mods.factorio.com/api/mods/';
 
-const SEARCHURL = 'https://mods.factorio.com/downloaded?version=1.1&query=';
+const SEARCHURL = 'https://mods.factorio.com/search?query=';
 
 const DOWNLOADURL = 'https://mods-storage.re146.dev';
 
@@ -56,10 +56,10 @@ async function fetchMod(name: string) {
 		// @ts-ignore
 		const datas = (await axios.get(MODURL + name).catch(() => resolve(undefined)))?.data;
 		try {
-			const title = datas?.title;
-			const version = datas?.releases[datas?.releases?.length - 1]?.version;
-			const author = datas?.owner;
-			const description = datas?.summary ?? undefined;
+			const title = datas.title;
+			const version = datas.releases[datas.releases.length - 1].version;
+			const author = datas.owner;
+			const description = datas.summary ?? undefined;
 
 			if ([title, author, version].includes(undefined)) {
 				resolve(undefined);
@@ -85,10 +85,10 @@ async function fetchMods(Mods: Array<string>) {
 				const ModList = responses.map(response => {
 					const datas = response.data;
 					try {
-						const title = datas?.title;
-						const version = datas?.releases[datas?.releases?.length - 1]?.version;
-						const author = datas?.owner;
-						const description = datas?.summary ?? undefined;
+						const title = datas.title;
+						const version = datas.releases[datas.releases.length - 1].version;
+						const author = datas.owner;
+						const description = datas.summary.replace(/\n\s*\n/g, '\n').trim() ?? undefined;
 
 						if ([title, author, version].includes(undefined)) {
 							return;
@@ -110,34 +110,25 @@ async function searchMod(search: string) {
 
 		const modList: Array<any> = [];
 
-		$('.mb0').each((i, el) => {
-			if (i % 2) {
-				// @ts-ignore
-				let name: Array<string> = el?.children[0]?.next?.attribs?.href?.split('');
-				name.shift();
-				name.shift();
-				name.shift();
-				name.shift();
-				name.shift();
+		$('.mod-list > div > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2)').each(
+			(i, el) => {
+				const htmlMod = $(el);
 
-				// @ts-ignore
-				const title = el?.children[0]?.next?.children[0]?.data;
+				const title = htmlMod.find('h2 > a').text().trim();
 
-				modList.push({ name: name.join(''), title: title });
+				const name = htmlMod.find('h2 > a').attr().href.slice(5).split('?')[0];
+
+				const author = htmlMod.find('div > a').text().trim();
+
+				const description = htmlMod
+					.find('p')
+					.text()
+					.replace(/\n\s*\n/g, '\n')
+					.trim();
+
+				modList.push({ name: name, title: title, author: author, description: description });
 			}
-		});
-
-		$('.orange').each((i, el) => {
-			const old = modList[i];
-			// @ts-ignore
-			modList[i] = { name: old.name, title: old.title, author: el?.children[0]?.data };
-		});
-
-		$('.pre-line').each((i, el) => {
-			const old = modList[i];
-			// @ts-ignore
-			modList[i] = { name: old.name, title: old.title, author: old.author, description: el?.children[0]?.data };
-		});
+		);
 
 		resolve(
 			modList.map(v => {

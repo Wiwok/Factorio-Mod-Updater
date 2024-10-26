@@ -1,72 +1,73 @@
-function CleanDependency(dependency: string) {
+function cleanDependency(dependency: string) {
 	/*
 	? moweather
 	?YARM
 	? AbandonedRuins >= 1.1.4
+	flib = 0.5.0
+	! Squeak Trough
 	(?)cargo-ships
 	! cardinal
 	base >= 1.0.0
-	flib >= 0.6.0
+	flib > 0.6.0
 	*/
 
-	if (dependency.startsWith('?') || dependency.startsWith('(?)')) {
-		let dep = dependency.split('');
-		if (dependency.startsWith('?')) {
-			dep.shift();
-		} else {
-			dep.shift();
-			dep.shift();
-			dep.shift();
-		}
-		while (dep[0] == ' ') {
-			dep.shift();
-		}
-		dep = dep.join('').split(' ');
-		if (dep.join(' ').includes('=')) {
-			return new Dependency(dep[0], 'Optional', dep[2]);
-		} else {
-			return new Dependency(dep[0], 'Optional');
-		}
-	} else if (dependency.startsWith('!')) {
-		let dep = dependency.split('');
-		dep.shift();
-		while (dep[0] == ' ') {
-			dep.shift();
-		}
-		dep = dep.join('').split(' ');
-		return new Dependency(dep[0], 'Conflict');
+	const OPERATORS = ['<=', '>=', '<', '>', '='];
+	const SEPARATORS = ['!', '\\?', '\\(\\?\\)'];
+
+	dependency = dependency.trim();
+
+	const tokens = dependency
+		.split(new RegExp([...OPERATORS, ...SEPARATORS].join('|'), 'g'))
+		.map(val => val.trim())
+		.filter(item => item != '');
+
+	const name = tokens[0];
+
+	const characterType = SEPARATORS.map(old => old.replace(/\\/g, '')).find(operator => dependency.includes(operator));
+
+	let type: DependencyState;
+	switch (characterType) {
+		case '!':
+			type = 'Conflict';
+			break;
+		case '?':
+			type = 'Optional';
+			break;
+		case '(?)':
+			type = 'Optional';
+			break;
+		default:
+			type = 'Required';
+			break;
+	}
+
+	const operatorResult = OPERATORS.find(operator => dependency.includes(operator));
+
+	if (operatorResult == undefined) {
+		return new Dependency(name, type, tokens.length > 1 ? tokens[1] : undefined);
 	} else {
-		let dep = dependency.split('');
-		if (dependency.startsWith('~')) {
-			dep.shift();
-		}
-
-		while (dep[0] == ' ') {
-			dep.shift();
-		}
-
-		dep = dep.join('').split(' ');
-		if (dep[0] == 'base') return;
-		if (dep.join(' ').includes('=')) {
-			return new Dependency(dep[0], 'Required', dep[2]);
-		} else {
-			return new Dependency(dep[0], 'Required');
-		}
+		return new Dependency(
+			name,
+			type,
+			tokens.length > 1 ? tokens[1] : undefined,
+			operatorResult as DependencyVersionOperators
+		);
 	}
 }
 
 type DependencyState = 'Required' | 'Optional' | 'Conflict';
+type DependencyVersionOperators = '<=' | '<' | '=' | '>' | '>=';
 
 class Dependency {
 	name: string;
-	version: string | undefined = undefined;
 	type: DependencyState;
-	constructor(name: string, type: DependencyState, version?: string) {
+	version: string | undefined;
+	versionOperator: DependencyVersionOperators | undefined;
+	constructor(name: string, type: DependencyState, version?: string, versionOperator?: DependencyVersionOperators) {
 		this.name = name;
 		this.type = type;
-		if (typeof version != 'undefined') {
-			this.version = version;
-		}
+		this.version = version;
+		this.versionOperator = versionOperator;
 	}
 }
 
@@ -97,7 +98,7 @@ class Mod {
 		if (typeof dependencies != 'undefined') {
 			const deps: Array<Dependency> = [];
 			dependencies.forEach(v => {
-				const dep = CleanDependency(v);
+				const dep = cleanDependency(v);
 				if (dep) {
 					deps.push(dep);
 				}
