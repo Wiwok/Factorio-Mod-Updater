@@ -318,18 +318,15 @@ function Starting() {
 		process.exit();
 	});
 
-	const FactorioState = HighLevelActions.isGameRunning();
-	server.once('listening', () => {
-		FactorioState.then(v => {
-			if (v) {
-				console.log(chalk.redBright('Factorio is running. Please close the game to avoid file corruption'));
-				console.log('Press enter to quit...');
-				UserInteration.Pause();
-				console.clear();
-				process.exit();
-			}
-			main();
-		});
+	server.once('listening', async () => {
+		while (true) {
+			if (!(await HighLevelActions.isGameRunning())) break;
+			console.log(chalk.redBright('Factorio is running. Please close the game to avoid file corruption.'));
+			console.log('Press enter to retry...');
+			UserInteration.Pause();
+			console.clear();
+		}
+		main();
 	});
 }
 
