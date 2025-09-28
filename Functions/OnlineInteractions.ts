@@ -108,7 +108,7 @@ async function searchMod(search: string) {
 		const v = await axios.get(`${SEARCHURL}${search}`);
 		const $ = load(v.data);
 
-		const modList: Array<any> = [];
+		const modList: Array<Mod> = [];
 
 		$('.mod-list > div > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2)').each(
 			(i, el) => {
@@ -126,15 +126,11 @@ async function searchMod(search: string) {
 					.replace(/\n\s*\n/g, '\n')
 					.trim();
 
-				modList.push({ name: name, title: title, author: author, description: description });
+				modList.push(new Mod(name, title, 'Unknown', author, [], description));
 			}
 		);
 
-		resolve(
-			modList.map(v => {
-				return new Mod(v.name, v.title, 'Unknown', v.author, [], v.description);
-			})
-		);
+		resolve(modList);
 	});
 }
 

@@ -1,20 +1,10 @@
-function cleanDependency(dependency: string) {
-	/*
-	? moweather
-	?YARM
-	? AbandonedRuins >= 1.1.4
-	flib = 0.5.0
-	! Squeak Trough
-	(?)cargo-ships
-	! cardinal
-	base >= 1.0.0
-	flib > 0.6.0
-	*/
+import chalk from 'chalk';
 
+function cleanDependency(dependency: string) {
 	const OPERATORS = ['<=', '>=', '<', '>', '='];
 	const SEPARATORS = ['!', '\\?', '\\(\\?\\)'];
 
-	dependency = dependency.trim();
+	dependency = dependency.replaceAll('~', '').trim();
 
 	const tokens = dependency
 		.split(new RegExp([...OPERATORS, ...SEPARATORS].join('|'), 'g'))
@@ -104,6 +94,19 @@ class Mod {
 				}
 			});
 			this.dependencies = deps;
+		}
+	}
+
+	print(newVersion: string = this.version) {
+		console.log('Mod: ' + chalk.bold(this.title));
+		console.log('Author: ' + this.author);
+		if (newVersion == this.version) {
+			console.log('Version: ' + this.version);
+		} else {
+			console.log('Version: ' + chalk.gray(this.version) + ' -> ' + chalk.underline(newVersion));
+		}
+		if (this.description) {
+			console.log('Description:\n' + chalk.gray(this.description));
 		}
 	}
 }

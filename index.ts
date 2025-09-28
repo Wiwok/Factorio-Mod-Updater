@@ -41,13 +41,12 @@ async function Install() {
 		}
 		if (modList.length == 1) {
 			modName = modList[0].value;
-			mod = await OnlineInteractions.fetchMod(modName);
 		} else {
 			modList.push({ name: chalk.redBright('Go back'), value: 'quit' });
 			modName = await UserInteration.Choices(modList.length - 1 + ' mods found:', modList);
 			if (modName == 'quit') return;
-			mod = await OnlineInteractions.fetchMod(modName);
 		}
+		mod = await OnlineInteractions.fetchMod(modName);
 	}
 	if (DataInteraction.Installed.isInstalled(modName)) {
 		const LocalMod = DataInteraction.Installed.fetchMod(modName);
@@ -55,13 +54,8 @@ async function Install() {
 			UserInteration.GoBackToMenu();
 			return;
 		}
-		console.log('Mod: ' + chalk.bold(mod.title));
-		console.log('Author: ' + mod.author);
+		LocalMod.print(mod.version);
 		if (mod.version != LocalMod.version) {
-			console.log('Version: ' + chalk.gray(LocalMod.version) + ' -> ' + chalk.underline(mod.version));
-			if (mod.description) {
-				console.log('Description:\n' + mod.description);
-			}
 			console.log('');
 			console.log(chalk.yellow('This mod is already installed but an update is available.'));
 			if (await UserInteration.Valid('Would you like to update it ?', true)) {
@@ -69,21 +63,12 @@ async function Install() {
 				await HighLevelActions.installMod(mod, 'update');
 			}
 		} else {
-			console.log('Version: ' + mod.version);
-			if (mod.description) {
-				console.log('Description:\n' + mod.description);
-			}
 			console.log(chalk.yellow('This mod is already installed'));
 		}
 		UserInteration.GoBackToMenu();
 		return;
 	}
-	console.log('Mod: ' + chalk.bold(mod.title));
-	console.log('Author: ' + mod.author);
-	console.log('Version: ' + mod.version);
-	if (mod.description) {
-		console.log('Description:\n' + chalk.gray(mod.description));
-	}
+	mod.print();
 	if (await UserInteration.Valid('Install it?')) {
 		console.log('');
 		await HighLevelActions.installMod(mod, 'install');
@@ -92,9 +77,9 @@ async function Install() {
 	return;
 }
 
-async function Manage() {
+async function Update() {
 	console.clear();
-	console.log(chalk.bgGray('Your mods') + '\n');
+	console.log(chalk.bgGray('Update mods') + '\n');
 
 	const List = DataInteraction.Installed.getList();
 
@@ -104,26 +89,27 @@ async function Manage() {
 		return;
 	}
 
-	const Choice = await UserInteration.Choices('What to do?', [
-		{
-			name: 'Update a mod',
-			value: 'update'
-		},
-		{
-			name: 'Check a mod',
-			value: 'check'
-		},
-		{
-			name: 'Uninstall a mod',
-			value: 'uninstall'
-		},
-		{
-			name: 'Cancel',
-			value: 'cancel'
-		}
-	]);
+	if (!(await OnlineInteractions.checkInternet())) {
+		console.log(chalk.redBright('Please check your internet connection'));
+		UserInteration.GoBackToMenu();
+		return;
+	}
 
-	if (Choice == 'cancel') return;
+	await HighLevelActions.updateAllMods();
+	UserInteration.GoBackToMenu();
+}
+
+async function Uninstall() {
+	console.clear();
+	console.log(chalk.bgGray('Uninstall mods') + '\n');
+
+	const List = DataInteraction.Installed.getList();
+
+	if (List.length == 0) {
+		console.log(chalk.redBright('No mods found'));
+		UserInteration.GoBackToMenu();
+		return;
+	}
 
 	const modList = DataInteraction.Installed.getMods();
 
@@ -131,111 +117,42 @@ async function Manage() {
 		return { name: mod.title, value: mod.name };
 	});
 
-	choices.unshift({ name: chalk.black(chalk.bgWhite('Every mods')), value: '*' });
+	if (choices.length != 1) choices.unshift({ name: chalk.black(chalk.bgWhite('Every mods')), value: '*' });
+	choices.push({ name: chalk.redBright('Go back'), value: 'quit' });
 
-	const modName = await UserInteration.Choices('Which mod?', choices);
+	const modName = await UserInteration.Choices('Which mod do you want to uninstall?', choices);
 	console.log('');
 
 	if (modName == '*') {
-		if (Choice == 'uninstall') {
-			console.log(chalk.redBright('⚠️WARNING⚠️'));
-			if (await UserInteration.Valid('Do you want to remove ALL of your mods?', false)) {
-				console.log('');
-				modList.forEach(mod => {
-					HighLevelActions.uninstallMod(mod);
-				});
-			}
-		} else if (Choice == 'check') {
-			if (!(await OnlineInteractions.checkInternet())) {
-				console.log(chalk.redBright('Please check your internet connection'));
-				UserInteration.GoBackToMenu();
-				return;
-			}
-			for (let mod of modList) {
-				if (!HighLevelActions.checkModState(mod)) {
-					console.log('❌' + chalk.bold(mod.title) + " isn't working now.");
-					if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
-						await HighLevelActions.checkDependencies(mod);
-					}
-				}
-			}
-			console.log('Done !');
-		} else if (Choice == 'update') {
-			if (!(await OnlineInteractions.checkInternet())) {
-				console.log(chalk.redBright('Please check your internet connection'));
-				UserInteration.GoBackToMenu();
-				return;
-			}
-
-			await HighLevelActions.updateAllMods();
+		console.log(chalk.redBright('⚠️WARNING⚠️'));
+		if (await UserInteration.Valid('Do you want to remove ALL of your mods?', false)) {
+			console.log('');
+			modList.forEach(mod => {
+				HighLevelActions.uninstallMod(mod);
+			});
 		}
+	} else if (modName == 'quit') {
+		return;
 	} else {
 		const mod = DataInteraction.Installed.fetchMod(modName);
 		if (typeof mod == 'undefined') {
 			UserInteration.GoBackToMenu();
 			return;
 		}
-		console.log('Mod: ' + chalk.bold(mod.title));
-		console.log('Author: ' + mod.author);
-		console.log('Version: ' + mod.version);
-		if (mod.description) {
-			console.log('Description:\n' + mod.description);
-		}
+		mod.print();
 		console.log('');
 
-		if (Choice == 'uninstall') {
-			if (await UserInteration.Valid('Do you want to uninstall it?')) {
-				console.log('');
-				const dep = HighLevelActions.isModUnderDependency(mod);
-				if (typeof dep != 'undefined') {
-					console.log(chalk.redBright('⚠️WARNING⚠️'));
-					console.log('This mod is required for ' + chalk.bold(dep.title) + ' to work.');
-					if (await UserInteration.Valid('Do you want to uninstall it anyway?', false)) {
-						HighLevelActions.uninstallMod(mod);
-					}
-				} else {
+		if (await UserInteration.Valid('Do you want to uninstall it?')) {
+			console.log('');
+			const dep = HighLevelActions.isModUnderDependency(mod);
+			if (typeof dep != 'undefined') {
+				console.log(chalk.redBright('⚠️WARNING⚠️'));
+				console.log('This mod is required for ' + chalk.bold(dep.title) + ' to work.');
+				if (await UserInteration.Valid('Do you want to uninstall it anyway?', false)) {
 					HighLevelActions.uninstallMod(mod);
 				}
-			}
-		} else if (Choice == 'check') {
-			if (!(await OnlineInteractions.checkInternet())) {
-				console.log(chalk.redBright('Please check your internet connection'));
-				UserInteration.GoBackToMenu();
-				return;
-			}
-			if (HighLevelActions.checkModState(mod)) {
-				console.log('✅This mod is ready to be used.');
-				const next = await UserInteration.Valid('Would you like to perform a dependency check anyway?', false);
-				if (next) {
-					await HighLevelActions.checkDependencies(mod);
-				}
 			} else {
-				console.log("❌This mod isn't working now.");
-				if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
-					await HighLevelActions.checkDependencies(mod);
-				}
-			}
-		} else if (Choice == 'update') {
-			if (!(await OnlineInteractions.checkInternet())) {
-				console.log(chalk.redBright('Please check your internet connection'));
-				UserInteration.GoBackToMenu();
-				return;
-			}
-
-			const mod = await OnlineInteractions.fetchMod(modName);
-			const localMod = DataInteraction.Installed.fetchMod(modName);
-
-			if (mod.version == localMod.version) {
-				console.log(chalk.bold(mod.title) + ' is up-to-date!');
-				UserInteration.GoBackToMenu();
-				return;
-			}
-
-			console.log(
-				'An update is available: ' + chalk.gray(localMod.version) + ' -> ' + chalk.underline(mod.version)
-			);
-			if (await UserInteration.Valid('Update it?')) {
-				await HighLevelActions.installMod(mod, 'update');
+				HighLevelActions.uninstallMod(mod);
 			}
 		}
 	}
@@ -260,8 +177,9 @@ async function main() {
 		console.log(chalk.bgGray('Factorio Mod Updater') + '\n');
 
 		const nav = await UserInteration.Choices('What do you want to do ?', [
-			{ name: 'Install a mod', value: 'install' },
-			{ name: 'Manage my mods', value: 'manage' },
+			{ name: 'Install', value: 'install' },
+			{ name: 'Update', value: 'update' },
+			{ name: 'Uninstall', value: 'uninstall' },
 			{ name: 'About', value: 'about' },
 			{ name: 'Quit', value: 'exit' }
 		]);
@@ -269,8 +187,11 @@ async function main() {
 			case 'install':
 				await Install();
 				break;
-			case 'manage':
-				await Manage();
+			case 'update':
+				await Update();
+				break;
+			case 'uninstall':
+				await Uninstall();
 				break;
 			case 'about':
 				About();

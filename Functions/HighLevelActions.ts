@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { exec } from 'child_process';
-import fs from 'fs';
-import fse from 'fs-extra';
+import { rmSync, existsSync } from 'fs';
+import { moveSync } from 'fs-extra';
 
 import Mod, { Dependency } from '../Classes/Mod';
 import ConsoleInteractions from './ConsoleInteractions';
@@ -31,7 +31,7 @@ async function installMod(mod: Mod, type: InstallType) {
 	}
 	console.log('[1/4] Checking...');
 	if (type == 'install') {
-		if (fs.existsSync(MODDIR + DataInteraction.clearName(mod.name))) {
+		if (existsSync(MODDIR + DataInteraction.clearName(mod.name))) {
 			ConsoleInteractions.clearLine();
 			console.log('Mod already installed');
 			return;
@@ -59,12 +59,9 @@ async function installMod(mod: Mod, type: InstallType) {
 	}
 	try {
 		if (type == 'update') {
-			fs.rmSync(MODDIR + mod.name, { recursive: true, force: true });
+			rmSync(MODDIR + mod.name, { recursive: true, force: true });
 		}
-		fse.moveSync(
-			MODTEMP + 'mod/' + DataInteraction.clearName(mod.name),
-			MODDIR + DataInteraction.clearName(mod.name)
-		);
+		moveSync(MODTEMP + 'mod/' + DataInteraction.clearName(mod.name), MODDIR + DataInteraction.clearName(mod.name));
 	} catch (err) {
 		ConsoleInteractions.clearLine();
 		if (type == 'install') {
@@ -85,17 +82,13 @@ async function installMod(mod: Mod, type: InstallType) {
 
 	mod = DataInteraction.Installed.fetchMod(mod.name);
 	if (!checkModState(mod)) {
-		console.log('');
-		console.log("❌This mod isn't working now.");
-		if (await UserInteration.Valid('Would you like to perform a dependency check?')) {
-			await checkDependencies(mod);
-		}
+		await checkDependencies(mod);
 	}
 }
 
 function uninstallMod(mod: Mod) {
 	console.log('Uninstalling ' + chalk.bold(mod.title) + '...');
-	fs.rmSync(MODDIR + mod.name, { recursive: true, force: true });
+	rmSync(MODDIR + mod.name, { recursive: true, force: true });
 	ConsoleInteractions.clearLine();
 	console.log('Successfully uninstalled ' + chalk.bold(mod.title));
 }
@@ -146,19 +139,16 @@ async function checkDependencies(mod: Mod) {
 
 	const ConflictsDeps: Array<Dependency> = [];
 	const RequiredDeps: Array<Dependency> = [];
-	const OptionalsDeps: Array<Dependency> = [];
 	AllDependencies.forEach(el => {
 		if (el.type == 'Conflict') {
 			ConflictsDeps.push(el);
 		} else if (el.type == 'Required') {
 			RequiredDeps.push(el);
-		} else {
-			OptionalsDeps.push(el);
 		}
 	});
 
 	// Check conflicts
-	const toRemove: Array<any> = [];
+	const toRemove = new Array<{ name: string; value: Mod; checked: boolean }>();
 	ConflictsDeps.forEach(dep => {
 		if (DataInteraction.Installed.isInstalled(dep.name)) {
 			const dependency = DataInteraction.Installed.fetchMod(dep.name);
@@ -172,67 +162,22 @@ async function checkDependencies(mod: Mod) {
 
 	if (toRemove.length) {
 		console.log('Theses mods are in ' + chalk.redBright('CONFLICT') + ' with ' + chalk.bold(mod.title));
-		const choices: Array<Mod> = await UserInteration.CheckBox('Select mods to remove', toRemove);
+		const choices = await UserInteration.CheckBox('Select mods to remove', toRemove);
 		console.log('');
 		choices.forEach(uninstallMod);
 	}
 
 	// Check required
-	let toInstall: Array<any> = [];
-	RequiredDeps.forEach(dep => {
-		if (dep.name == 'base') return;
-		if (!DataInteraction.Installed.isInstalled(dep.name)) {
-			toInstall.push(dep);
-		}
-	});
+	const toInstall = RequiredDeps.filter(
+		dep => dep.name != 'base' && !DataInteraction.Installed.isInstalled(dep.name)
+	);
 
 	if (toInstall.length) {
 		console.log('Fetching dependencies...');
-		let toInstallMods = await OnlineInteractions.fetchMods(toInstall.map(v => v.name));
+		const toInstallMods = await OnlineInteractions.fetchMods(toInstall.map(v => v.name));
 		ConsoleInteractions.clearLine();
 
-		toInstall = toInstallMods.map(dep => {
-			return { name: dep.title, value: dep, checked: true };
-		});
-
-		console.log('Theses mods are ' + chalk.blueBright('REQUIRED') + ' for ' + chalk.bold(mod.title));
-		toInstallMods = await UserInteration.CheckBox('Select mods to install', toInstall);
-		console.log('');
-
-		for (let mod of toInstallMods) {
-			await installMod(mod, 'install');
-		}
-	}
-
-	// Check optionals
-	let toOptInstall: Array<any> = [];
-	OptionalsDeps.forEach(dep => {
-		if (!DataInteraction.Installed.isInstalled(dep.name)) {
-			toOptInstall.push(dep);
-		}
-	});
-
-	if (toOptInstall.length) {
-		if (
-			!(await UserInteration.Valid(
-				toOptInstall.length + ' optionals dependencies are available. Do you wanna check them ?',
-				false
-			))
-		)
-			return;
-		console.log('Fetching dependencies...');
-		let toOptInstallMods = await OnlineInteractions.fetchMods(toOptInstall.map(v => v.name));
-		ConsoleInteractions.clearLine();
-
-		toOptInstall = toOptInstallMods.map(dep => {
-			return { name: dep.title, value: dep, checked: true };
-		});
-
-		console.log('Theses mods are ' + chalk.blueBright('OPTIONAL') + ' for ' + chalk.bold(mod.title));
-		toOptInstallMods = await UserInteration.CheckBox('Select mods to install', toOptInstall);
-		console.log('');
-
-		for (let mod of toOptInstallMods) {
+		for (const mod of toInstallMods) {
 			await installMod(mod, 'install');
 		}
 	}
@@ -267,16 +212,25 @@ async function updateAllMods() {
 		console.log('Mods up to date !');
 		return;
 	}
-	const message = upgradeMods.length == 1 ? 'Update it?' : 'Update them?';
 
-	if (!(await UserInteration.Valid(message))) {
+	console.log('');
+	const toUpdate = await UserInteration.CheckBox(
+		'Select mods to update',
+		upgradeMods.map(mod => {
+			return { name: mod.title, value: mod.name, checked: true };
+		})
+	);
+
+	const toUpgrade = upgradeMods.filter(mod => toUpdate.includes(mod.name));
+
+	if (toUpgrade.length == 0) {
 		return;
 	}
 
 	const time = Date.now();
 	console.log('\n');
 
-	for (let mod of upgradeMods) {
+	for (const mod of toUpgrade) {
 		await installMod(mod, 'update');
 	}
 
@@ -286,8 +240,8 @@ async function updateAllMods() {
 
 function isModUnderDependency(mod: Mod) {
 	const modList = DataInteraction.Installed.getMods();
-	for (let localMod of modList) {
-		for (let dep of localMod.dependencies) {
+	for (const localMod of modList) {
+		for (const dep of localMod.dependencies) {
 			if (dep.type == 'Required') {
 				if (dep.name == mod.name) {
 					return localMod;

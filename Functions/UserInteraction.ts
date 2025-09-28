@@ -3,9 +3,9 @@ import PromptSync from 'prompt-sync';
 
 const prompt = PromptSync();
 
-type Choice = {
+type Choice<T> = {
 	name: string;
-	value: string;
+	value: T;
 };
 
 async function Prompt(message: string): Promise<string> {
@@ -29,7 +29,7 @@ async function Valid(message: string, Default: boolean = true): Promise<boolean>
 	).valid;
 }
 
-async function Choices(message: string, choices: Array<Choice>): Promise<string> {
+async function Choices<T>(message: string, choices: Array<Choice<T>>): Promise<T> {
 	return (
 		await inquirer.prompt({
 			name: 'list',
@@ -40,7 +40,7 @@ async function Choices(message: string, choices: Array<Choice>): Promise<string>
 	).list;
 }
 
-async function CheckBox(message: string, choices: Array<Choice>) {
+async function CheckBox<T>(message: string, choices: Array<Choice<T>>): Promise<Array<T>> {
 	return (
 		await inquirer.prompt({
 			name: 'checkBox',
