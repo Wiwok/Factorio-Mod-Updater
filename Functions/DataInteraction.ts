@@ -1,6 +1,6 @@
 import AdmZip from 'adm-zip';
-import fs from 'fs';
-import fse from 'fs-extra';
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync } from 'fs';
+import { moveSync } from 'fs-extra';
 
 import Mod from '../Classes/Mod';
 
@@ -9,12 +9,12 @@ const TEMPDIR = process.env.APPDATA + '/Factorio Mod Updater/';
 
 function clearTempDir() {
 	try {
-		if (fs.existsSync(TEMPDIR)) {
-			fs.rmSync(TEMPDIR, { recursive: true, force: true });
+		if (existsSync(TEMPDIR)) {
+			rmSync(TEMPDIR, { recursive: true, force: true });
 		}
-		fs.mkdirSync(TEMPDIR);
-		fs.mkdirSync(TEMPDIR + 'mod');
-		fs.mkdirSync(TEMPDIR + 'zip');
+		mkdirSync(TEMPDIR);
+		mkdirSync(TEMPDIR + 'mod');
+		mkdirSync(TEMPDIR + 'zip');
 		return true;
 	} catch (err) {
 		return false;
@@ -29,15 +29,15 @@ function clearName(name: string) {
 }
 
 function isModInstalled(name: string) {
-	return fs.existsSync(MODDIR + clearName(name) + '/info.json');
+	return existsSync(MODDIR + clearName(name) + '/info.json');
 }
 
 function getInstalledMods() {
 	const mods: Array<Mod> = [];
-	fs.readdirSync(MODDIR).forEach(v => {
+	readdirSync(MODDIR).forEach(v => {
 		try {
-			if (fs.lstatSync(MODDIR + v).isDirectory()) {
-				const tempMod = JSON.parse(fs.readFileSync(MODDIR + v + '/info.json').toString());
+			if (lstatSync(MODDIR + v).isDirectory()) {
+				const tempMod = JSON.parse(readFileSync(MODDIR + v + '/info.json').toString());
 				const mod = new Mod(
 					tempMod.name,
 					tempMod.title,
@@ -55,36 +55,35 @@ function getInstalledMods() {
 
 function fetchInstalledMod(name: string) {
 	name = clearName(name);
-	if (!fs.existsSync(MODDIR + name)) {
+	if (!existsSync(MODDIR + name)) {
 		return;
 	}
-	const data = JSON.parse(fs.readFileSync(MODDIR + name + '/info.json').toString());
-	return new Mod(data.name, data.title, data.version, data.author, data?.dependencies);
+	const data = JSON.parse(readFileSync(MODDIR + name + '/info.json').toString());
+	return new Mod(data.name, data.title, data.version, data.author, data?.dependencies, data?.description);
 }
 
 function getModsList() {
-	return fs.readdirSync(MODDIR).filter(mod => {
-		if (fs.existsSync(MODDIR + mod + '/info.json')) return mod;
+	return readdirSync(MODDIR).filter(mod => {
+		if (existsSync(MODDIR + mod + '/info.json')) return mod;
 	});
 }
 
 function unzip() {
 	try {
-		const zip = new AdmZip(TEMPDIR + 'mod.zip');
-		zip.extractAllTo(TEMPDIR + 'zip/', true);
+		new AdmZip(TEMPDIR + 'mod.zip').extractAllTo(TEMPDIR + 'zip/', true);
 		const name = JSON.parse(
-			fs.readFileSync(TEMPDIR + 'zip/' + fs.readdirSync(TEMPDIR + 'zip/')[0] + '/info.json').toString()
+			readFileSync(TEMPDIR + 'zip/' + readdirSync(TEMPDIR + 'zip/')[0] + '/info.json').toString()
 		)?.name;
-		fse.moveSync(TEMPDIR + 'zip/' + fs.readdirSync(TEMPDIR + 'zip/')[0], TEMPDIR + 'mod/' + name);
-		fs.rmSync(TEMPDIR + 'mod.zip');
+		moveSync(TEMPDIR + 'zip/' + readdirSync(TEMPDIR + 'zip/')[0], TEMPDIR + 'mod/' + name);
+		rmSync(TEMPDIR + 'mod.zip');
 		return true;
 	} catch (err) {
-		if (fs.existsSync(TEMPDIR + 'mod.zip')) {
-			fs.rmSync(TEMPDIR + 'mod.zip');
+		if (existsSync(TEMPDIR + 'mod.zip')) {
+			rmSync(TEMPDIR + 'mod.zip');
 		}
 
-		fs.rmdirSync(TEMPDIR + 'zip');
-		fs.mkdirSync(TEMPDIR + 'zip');
+		rmdirSync(TEMPDIR + 'zip');
+		mkdirSync(TEMPDIR + 'zip');
 
 		return false;
 	}
