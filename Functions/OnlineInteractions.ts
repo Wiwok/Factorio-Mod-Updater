@@ -87,7 +87,6 @@ function parseMod(name: string, data: any) {
 }
 
 async function fetchMod(name: string) {
-	console.log('Fetch ' + name);
 	return parseMod(name, (await axios.get(MOD_URL + name + '/full'))?.data);
 }
 
