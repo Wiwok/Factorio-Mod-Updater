@@ -1,104 +1,153 @@
-import AdmZip from 'adm-zip';
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync } from 'fs';
-import { moveSync } from 'fs-extra';
+import { createWriteStream } from 'node:fs';
+import { lstat, mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
+import path from 'node:path';
+import unzipper from 'unzipper';
 
-import Mod from '../Classes/Mod';
+import { LocalMod } from '../Classes/Mod';
+import exists from '../Tools/exists';
 
 const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 const TEMPDIR = process.env.APPDATA + '/Factorio Mod Updater/';
 
-function clearTempDir() {
+async function clearTemp() {
 	try {
-		if (existsSync(TEMPDIR)) {
-			rmSync(TEMPDIR, { recursive: true, force: true });
+		if (await exists(TEMPDIR)) {
+			await rm(TEMPDIR, { recursive: true, force: true });
 		}
-		mkdirSync(TEMPDIR);
-		mkdirSync(TEMPDIR + 'mod');
-		mkdirSync(TEMPDIR + 'zip');
+		await mkdir(TEMPDIR, { recursive: true });
+		await mkdir(path.join(TEMPDIR, 'mod'), { recursive: true });
+		await mkdir(path.join(TEMPDIR, 'zip'), { recursive: true });
 		return true;
-	} catch (err) {
+	} catch {
 		return false;
 	}
 }
 
-function clearName(name: string) {
-	while (name.includes('%20')) {
-		name = name.replace('%20', ' ');
-	}
-	return name;
+async function isModInstalled(name: string) {
+	return exists(path.join(MODDIR, name, 'info.json'));
 }
 
-function isModInstalled(name: string) {
-	return existsSync(MODDIR + clearName(name) + '/info.json');
-}
+async function fetchInstalledMods() {
+	const entries = await readdir(MODDIR);
 
-function getInstalledMods() {
-	const mods: Array<Mod> = [];
-	readdirSync(MODDIR).forEach(v => {
-		try {
-			if (lstatSync(MODDIR + v).isDirectory()) {
-				const tempMod = JSON.parse(readFileSync(MODDIR + v + '/info.json').toString());
-				const mod = new Mod(
+	const mods = await Promise.all(
+		entries.map(async v => {
+			try {
+				if (!(await lstat(path.join(MODDIR, v))).isDirectory()) return null;
+				const tempMod = JSON.parse((await readFile(path.join(MODDIR, v, 'info.json'))).toString());
+				return new LocalMod(
 					tempMod.name,
 					tempMod.title,
 					tempMod.version,
 					tempMod.author,
-					tempMod?.dependencies,
-					tempMod?.description
+					tempMod.description,
+					tempMod.dependencies
 				);
-				mods.push(mod);
+			} catch {
+				return null;
 			}
-		} catch {}
-	});
-	return mods;
+		})
+	);
+
+	return mods.filter(m => m !== null);
 }
 
-function fetchInstalledMod(name: string) {
-	name = clearName(name);
-	if (!existsSync(MODDIR + name)) {
+async function getMods() {
+	const entries = await readdir(MODDIR);
+	const withStats = await Promise.all(
+		entries.map(v => lstat(path.join(MODDIR, v)).then(stat => ({ v, isDir: stat.isDirectory() })))
+	);
+	return withStats.filter(({ isDir }) => isDir).map(({ v }) => v);
+}
+
+async function getMod(name: string) {
+	if (!(await exists(path.join(MODDIR, name)))) {
 		return;
 	}
-	const data = JSON.parse(readFileSync(MODDIR + name + '/info.json').toString());
-	return new Mod(data.name, data.title, data.version, data.author, data?.dependencies, data?.description);
+	const data = JSON.parse((await readFile(path.join(MODDIR, name, 'info.json'))).toString());
+	return new LocalMod(data.name, data.title, data.version, data.author, data.description, data.dependencies);
 }
 
-function getModsList() {
-	return readdirSync(MODDIR).filter(mod => {
-		if (existsSync(MODDIR + mod + '/info.json')) return mod;
-	});
+async function getTempMod(name: string) {
+	const data = JSON.parse((await readFile(path.join(path.join(TEMPDIR, 'mod', name), 'info.json'))).toString());
+	return new LocalMod(data.name, data.title, data.version, data.author, data.description, data.dependencies);
 }
 
-function unzip() {
+async function unzip(name: string, onProgress?: (percent: number, extracted: number, size: number) => void) {
+	const extractPath = path.join(TEMPDIR, 'zip', name);
+	if (await exists(extractPath)) await rm(extractPath, { recursive: true, force: true });
+	await mkdir(extractPath, { recursive: true });
+
 	try {
-		new AdmZip(TEMPDIR + 'mod.zip').extractAllTo(TEMPDIR + 'zip/', true);
-		const name = JSON.parse(
-			readFileSync(TEMPDIR + 'zip/' + readdirSync(TEMPDIR + 'zip/')[0] + '/info.json').toString()
-		)?.name;
-		moveSync(TEMPDIR + 'zip/' + readdirSync(TEMPDIR + 'zip/')[0], TEMPDIR + 'mod/' + name);
-		rmSync(TEMPDIR + 'mod.zip');
+		const directory = await unzipper.Open.file(path.join(TEMPDIR, name + '.zip'));
+		const totalSize = directory.files.reduce((acc, f) => acc + f.uncompressedSize, 0);
+		let extracted = 0;
+		let lastPercent = -1;
+
+		let lastUpdate = 0;
+		const throttledProgress = (ex: number) => {
+			if (!onProgress) return;
+			const now = Date.now();
+			const percent = Math.min(Math.round((ex / totalSize) * 100), 100);
+			if (now - lastUpdate < 100 && percent === lastPercent) return;
+			lastUpdate = now;
+			lastPercent = percent;
+			onProgress(percent, ex, totalSize);
+		};
+
+		await Promise.all(
+			directory.files.map(
+				file =>
+					new Promise<void>(async (resolve, reject) => {
+						const entryPath = path.join(extractPath, file.path);
+
+						if (file.type === 'Directory') {
+							await mkdir(entryPath, { recursive: true });
+							resolve();
+							return;
+						}
+
+						await mkdir(path.dirname(entryPath), { recursive: true });
+
+						const writeStream = createWriteStream(entryPath);
+						const readStream = file.stream();
+
+						readStream.on('data', (chunk: Buffer) => {
+							extracted += chunk.length;
+							throttledProgress(extracted);
+						});
+
+						writeStream.on('close', resolve);
+						writeStream.on('error', reject);
+						readStream.on('error', reject);
+
+						readStream.pipe(writeStream);
+					})
+			)
+		);
+
+		const subDir = (await readdir(extractPath))[0];
+
+		await rename(path.join(extractPath, subDir), path.join(TEMPDIR, 'mod', name));
+		await rm(path.join(TEMPDIR, name + '.zip'));
+		await rm(path.join(extractPath), { recursive: true, force: true });
 		return true;
 	} catch (err) {
-		if (existsSync(TEMPDIR + 'mod.zip')) {
-			rmSync(TEMPDIR + 'mod.zip');
-		}
-
-		rmdirSync(TEMPDIR + 'zip');
-		mkdirSync(TEMPDIR + 'zip');
-
+		console.error(err);
+		if (await exists(path.join(TEMPDIR, name + '.zip'))) await rm(path.join(TEMPDIR, name + '.zip'));
 		return false;
 	}
 }
-
 const DataInteraction = {
 	Installed: {
-		getMods: getInstalledMods,
-		getList: getModsList,
+		fetchMods: fetchInstalledMods,
 		isInstalled: isModInstalled,
-		fetchMod: fetchInstalledMod
+		getMod: getMod,
+		getMods: getMods
 	},
-	clearTemp: clearTempDir,
-	unzip,
-	clearName
+	getTempMod,
+	clearTemp,
+	unzip
 };
 
 export default DataInteraction;

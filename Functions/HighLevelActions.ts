@@ -1,263 +1,236 @@
-import chalk from 'chalk';
-import { exec } from 'child_process';
-import { rmSync, existsSync } from 'fs';
-import { moveSync } from 'fs-extra';
+import { checkbox } from '@inquirer/prompts';
+import { ListrInquirerPromptAdapter } from '@listr2/prompt-adapter-inquirer';
+import { Listr, ListrTask } from 'listr2';
+import { exec } from 'node:child_process';
+import { rename, rm } from 'node:fs/promises';
+import path from 'node:path';
 
-import Mod, { Dependency } from '../Classes/Mod';
+import { LocalMod, Mod, OnlineMod } from '../Classes/Mod';
 import ConsoleInteractions from './ConsoleInteractions';
 import DataInteraction from './DataInteraction';
 import OnlineInteractions from './OnlineInteractions';
-import UserInteration from './UserInteraction';
 
 const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
 const MODDIR = process.env.APPDATA + '/Factorio/mods/';
 
 type InstallType = 'update' | 'install';
 
-function isGameRunning(): Promise<boolean> {
-	return new Promise(resolve => {
-		exec('tasklist', (err, stdout) => {
-			resolve(stdout.toLowerCase().indexOf('factorio.exe') > -1);
+function isGameRunning() {
+	return new Promise<boolean>(resolve => {
+		exec('tasklist', (_, stdout) => {
+			resolve(stdout.toLowerCase().includes('factorio.exe'));
 		});
 	});
 }
 
-async function installMod(mod: Mod, type: InstallType) {
-	const time = Date.now();
-	if (type == 'install') {
-		console.log('Installing ' + chalk.bold(mod.title));
-	} else {
-		console.log('Updating ' + chalk.bold(mod.title));
-	}
-	console.log('[1/4] Checking...');
-	if (type == 'install') {
-		if (existsSync(MODDIR + DataInteraction.clearName(mod.name))) {
-			ConsoleInteractions.clearLine();
-			console.log('Mod already installed');
-			return;
-		}
-	}
-	ConsoleInteractions.clearLine();
-	console.log('[2/4] Downloading...');
-	await OnlineInteractions.downloadMod(mod.name, mod.version).catch(() => {
-		ConsoleInteractions.clearLine();
-		console.log(chalk.redBright('An error occurred while downloading this mod.'));
-		return;
-	});
-	ConsoleInteractions.clearLine();
-	console.log('[3/4] Unzipping...');
-	if (!DataInteraction.unzip()) {
-		ConsoleInteractions.clearLine();
-		console.log(chalk.redBright('An error occurred while unzipping this mod.'));
-		return;
-	}
-	ConsoleInteractions.clearLine();
-	if (type == 'install') {
-		console.log('[4/4] Installing...');
-	} else {
-		console.log('[4/4] Updating...');
-	}
-	try {
-		if (type == 'update') {
-			rmSync(MODDIR + mod.name, { recursive: true, force: true });
-		}
-		moveSync(MODTEMP + 'mod/' + DataInteraction.clearName(mod.name), MODDIR + DataInteraction.clearName(mod.name));
-	} catch (err) {
-		ConsoleInteractions.clearLine();
-		if (type == 'install') {
-			console.log(chalk.redBright('An error occurred while installing this mod.'));
-		} else {
-			console.log(chalk.redBright('An error occurred while updating this mod.'));
-		}
-		return;
-	}
-	ConsoleInteractions.clearLine();
-	ConsoleInteractions.clearLine();
-	const timeNow = Date.now() - time;
-	if (type == 'install') {
-		console.log(chalk.bold(mod.title) + ' installed in ' + (timeNow / 1000).toFixed(2) + 's');
-	} else {
-		console.log(chalk.bold(mod.title) + ' updated in ' + (timeNow / 1000).toFixed(2) + 's');
-	}
-
-	mod = DataInteraction.Installed.fetchMod(mod.name);
-	if (!checkModState(mod)) {
-		await checkDependencies(mod);
-	}
-}
-
-function uninstallMod(mod: Mod) {
-	console.log('Uninstalling ' + chalk.bold(mod.title) + '...');
-	rmSync(MODDIR + mod.name, { recursive: true, force: true });
-	ConsoleInteractions.clearLine();
-	console.log('Successfully uninstalled ' + chalk.bold(mod.title));
-}
-
-function checkModState(mod: Mod) {
-	const AllDependencies = mod.dependencies;
-
-	if (AllDependencies.length == 0) {
-		return true;
-	}
-
-	const ConflictsDeps: Array<Dependency> = [];
-	const RequiredDeps: Array<Dependency> = [];
-	AllDependencies.forEach(el => {
-		if (el.type == 'Conflict') {
-			ConflictsDeps.push(el);
-		} else if (el.type == 'Required') {
-			RequiredDeps.push(el);
-		}
-	});
-
-	let state = true;
-
-	// Check conflicts
-	ConflictsDeps.forEach(dep => {
-		if (DataInteraction.Installed.isInstalled(dep.name)) {
-			state = false;
-		}
-	});
-
-	// Check required
-	RequiredDeps.forEach(dep => {
-		if (dep.name == 'base') return;
-		if (!DataInteraction.Installed.isInstalled(dep.name)) {
-			state = false;
-		}
-	});
-
-	return state;
-}
-
-async function checkDependencies(mod: Mod) {
-	const AllDependencies = mod.dependencies;
-
-	if (AllDependencies.length == 0) {
-		return;
-	}
-
-	const ConflictsDeps: Array<Dependency> = [];
-	const RequiredDeps: Array<Dependency> = [];
-	AllDependencies.forEach(el => {
-		if (el.type == 'Conflict') {
-			ConflictsDeps.push(el);
-		} else if (el.type == 'Required') {
-			RequiredDeps.push(el);
-		}
-	});
-
-	// Check conflicts
-	const toRemove = new Array<{ name: string; value: Mod; checked: boolean }>();
-	ConflictsDeps.forEach(dep => {
-		if (DataInteraction.Installed.isInstalled(dep.name)) {
-			const dependency = DataInteraction.Installed.fetchMod(dep.name);
-			toRemove.push({
-				name: dependency.title,
-				value: dependency,
-				checked: true
-			});
-		}
-	});
-
-	if (toRemove.length) {
-		console.log('Theses mods are in ' + chalk.redBright('CONFLICT') + ' with ' + chalk.bold(mod.title));
-		const choices = await UserInteration.CheckBox('Select mods to remove', toRemove);
-		console.log('');
-		choices.forEach(uninstallMod);
-	}
-
-	// Check required
-	const toInstall = RequiredDeps.filter(
-		dep => dep.name != 'base' && !DataInteraction.Installed.isInstalled(dep.name)
-	);
-
-	if (toInstall.length) {
-		console.log('Fetching dependencies...');
-		const toInstallMods = await OnlineInteractions.fetchMods(toInstall.map(v => v.name));
-		ConsoleInteractions.clearLine();
-
-		for (const mod of toInstallMods) {
-			await installMod(mod, 'install');
-		}
-	}
-}
-
-async function updateAllMods() {
-	const localMods = DataInteraction.Installed.getMods();
-	const modList = DataInteraction.Installed.getList();
-
-	console.log('Fetching mods...');
-	const newMods = await OnlineInteractions.fetchMods(modList);
-	ConsoleInteractions.clearLine();
-
-	const upgradeMods: Array<Mod> = [];
-	newMods.forEach((newMod, i) => {
-		const localMod = localMods[i];
-		if (newMod.version != localMod.version) {
-			if (upgradeMods.length == 0) {
-				console.log('Mods to update :\n');
+function createInstallTasks(mod: LocalMod, type: InstallType, log?: (message: string) => void): Array<ListrTask> {
+	return [
+		{
+			title: 'Download mod',
+			task: async (_, task) => {
+				await OnlineInteractions.downloadMod(mod.name, mod.version, (p, d, s) => {
+					task.output = `Download mod ${ConsoleInteractions.formatSize(d)}/${ConsoleInteractions.formatSize(s)} (${p.toFixed()}%)`;
+					if (log)
+						log(
+							`Downloading... ${ConsoleInteractions.formatSize(d)}/${ConsoleInteractions.formatSize(s)} (${p.toFixed()}%)`
+						);
+				}).catch(() => {
+					throw new Error('An error occurred while downloading this mod');
+				});
+			},
+			retry: {
+				tries: 3,
+				delay: 5000
 			}
-			console.log(
-				chalk.bold(localMod.title) +
-					': ' +
-					chalk.gray(localMod.version) +
-					' -> ' +
-					chalk.underline(newMod.version)
-			);
-			upgradeMods.push(newMod);
-		}
-	});
-	if (upgradeMods.length == 0) {
-		console.log('Mods up to date !');
-		return;
-	}
-
-	console.log('');
-	const toUpdate = await UserInteration.CheckBox(
-		'Select mods to update',
-		upgradeMods.map(mod => {
-			return { name: mod.title, value: mod.name, checked: true };
-		})
-	);
-
-	const toUpgrade = upgradeMods.filter(mod => toUpdate.includes(mod.name));
-
-	if (toUpgrade.length == 0) {
-		return;
-	}
-
-	const time = Date.now();
-	console.log('\n');
-
-	for (const mod of toUpgrade) {
-		await installMod(mod, 'update');
-	}
-
-	const newTime = Date.now() - time;
-	console.log('Mods updated in ' + (newTime / 1000).toFixed(2) + 's');
-}
-
-function isModUnderDependency(mod: Mod) {
-	const modList = DataInteraction.Installed.getMods();
-	for (const localMod of modList) {
-		for (const dep of localMod.dependencies) {
-			if (dep.type == 'Required') {
-				if (dep.name == mod.name) {
-					return localMod;
+		},
+		{
+			title: 'Extract files',
+			task: async (_, task) => {
+				const success = await DataInteraction.unzip(mod.name, (p, e, s) => {
+					task.output = `Extract files ${ConsoleInteractions.formatSize(e)}/${ConsoleInteractions.formatSize(s)} (${p.toFixed()}%)`;
+					if (log)
+						log(
+							`Extracting... ${ConsoleInteractions.formatSize(e)}/${ConsoleInteractions.formatSize(s)} (${p.toFixed()}%)`
+						);
+				});
+				if (!success) throw new Error('An error occurred while extracting this mod');
+			}
+		},
+		{
+			title: 'Verify mod integrity',
+			task: async () => {
+				await Promise.resolve(DataInteraction.getTempMod(mod.name))
+					.catch(err => {
+						throw new Error('An error occurred while verifying this mod: ' + err);
+					})
+					.then(newMod => {
+						if (newMod.name != mod.name || newMod.version != mod.version) {
+							throw new Error('Mod integrity compromised');
+						}
+					});
+			}
+		},
+		{
+			title: 'Move files into place',
+			task: async () => {
+				if (log) log('Moving files into place...');
+				try {
+					if (type == 'update') {
+						await rm(path.join(MODDIR, mod.name), {
+							recursive: true,
+							force: true
+						});
+					}
+					await rename(path.join(MODTEMP, 'mod', mod.name), path.join(MODDIR, mod.name));
+				} catch (err: any) {
+					if (err?.code == 'EBUSY') {
+						throw new Error(
+							'The mod folder is currently in use. Please close any program that might be using it and try again'
+						);
+					} else {
+						throw new Error('An error occurred while moving files');
+					}
 				}
+			},
+			retry: {
+				tries: 3,
+				delay: 5000
+			}
+		},
+		{
+			title: 'Install dependencies',
+			task: async (_, task) => {
+				const dependencies = await mod.getDependenciesToModify();
+				if (dependencies.length == 0) {
+					task.skip('No dependencies to install');
+					return;
+				}
+
+				const requiredDependencies = (
+					await OnlineInteractions.fetchMods(dependencies.filter(v => v.type == 'Required').map(v => v.name))
+				).filter(v => v != undefined);
+
+				if (requiredDependencies.length == 0) return;
+
+				return task.newListr(
+					requiredDependencies.map(dep => ({
+						title: 'Install ' + dep.title,
+						task: async (_, subTask) => {
+							subTask.output = 'Installing...';
+							const log = (message: string) => (subTask.output = message);
+							await new Listr(createInstallTasks(dep, 'install', log), { renderer: 'silent' }).run();
+						}
+					})),
+					{ concurrent: 3 }
+				);
 			}
 		}
+	];
+}
+
+async function installMod(mod: OnlineMod, type: InstallType) {
+	const tasks = new Listr(createInstallTasks(mod, type));
+	try {
+		await tasks.run();
+	} catch (err) {
+		console.error(err instanceof Error ? err.message : err);
 	}
-	return;
+	console.log('');
+}
+
+async function uninstallMod(mod: Mod) {
+	const tasks = new Listr([
+		{
+			title: 'Remove files',
+			task: async () => rm(path.join(MODDIR, mod.name), { recursive: true, force: true })
+		}
+	]);
+	try {
+		await tasks.run();
+	} catch (err) {
+		console.error(err instanceof Error ? err.message : err);
+	}
+}
+
+async function updateAllMods(localMods: Array<LocalMod>) {
+	const tasks = new Listr<{
+		mods: Array<OnlineMod>;
+	}>([
+		{
+			title: 'Fetch mods information',
+			task: async (ctx, task) => {
+				ctx.mods = (
+					await OnlineInteractions.fetchMods(
+						localMods.map(mod => mod.name),
+						(completed, total) => {
+							task.output = `Fetched ${completed}/${total} (${Math.round((completed / total) * 100)}%)`;
+						}
+					)
+				).filter(m => m !== undefined);
+				task.title = 'Fetch mods information';
+			}
+		},
+		{
+			title: 'Check for updates',
+			task: async ctx => {
+				ctx.mods = ctx.mods.filter(mod => mod.version != localMods.find(m => m.name === mod.name)?.version);
+			}
+		},
+		{
+			title: 'Update mods',
+			task: async (ctx, task) => {
+				if (ctx.mods.length == 0) {
+					return;
+				}
+
+				try {
+					const selected = (await task
+						.prompt(ListrInquirerPromptAdapter)
+						.run(checkbox, {
+							message: 'Select mods to update',
+							choices: ctx.mods.map(mod => {
+								const oldMod = localMods.find(m => m.name === mod.name);
+								return {
+									name: mod.title + ` ${oldMod?.version ?? 'unknown'} -> ${mod.version}`,
+									value: mod.name,
+									checked: true,
+									description: mod.getChangelog(oldMod?.version ?? 'unknown', mod.version)
+								};
+							})
+						})
+						.catch(() => (ctx.mods = []))) as Array<string>;
+					ctx.mods = ctx.mods.filter(mod => selected.includes(mod.name));
+				} catch {
+					ctx.mods = [];
+				}
+
+				if (ctx.mods.length == 0) {
+					task.skip('No update needed');
+					return;
+				}
+
+				return new Listr(
+					ctx.mods.map(mod => ({
+						title: 'Update ' + mod.title,
+						task: () => new Listr(createInstallTasks(mod, 'update'))
+					})),
+					{ concurrent: 3 }
+				);
+			},
+			skip: ctx => (ctx.mods.length == 0 ? 'All mods are up to date' : false)
+		}
+	]);
+	try {
+		await tasks.run();
+	} catch (err) {
+		console.error(err instanceof Error ? err.message : err);
+	}
+	console.log('');
 }
 
 const HighLevelActions = {
-	checkDependencies,
-	checkModState,
 	installMod,
 	isGameRunning,
-	isModUnderDependency,
 	uninstallMod,
 	updateAllMods
 };

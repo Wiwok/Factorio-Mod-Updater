@@ -1,134 +1,135 @@
 import axios from 'axios';
 import { load } from 'cheerio';
-import dns from 'dns';
-import fs from 'fs';
-import https from 'https';
+import dns from 'node:dns';
+import fs from 'node:fs';
+import { get } from 'node:https';
 
-import Mod from '../Classes/Mod';
+import { OnlineMod, SearchMod } from '../Classes/Mod';
 import ConsoleInteractions from './ConsoleInteractions';
 
-const MODTEMP = process.env.APPDATA + '/Factorio Mod Updater/';
+const MOD_TEMP_DIR = process.env.APPDATA + '/Factorio Mod Updater/';
 
-const MODURL = 'https://mods.factorio.com/api/mods/';
+const MOD_URL = 'https://mods.factorio.com/api/mods/';
 
-const SEARCHURL = 'https://mods.factorio.com/search?query=';
+const SEARCH_URL = 'https://mods.factorio.com/search?query=';
 
-const DOWNLOADURL = 'https://mods-storage.re146.dev';
+const DOWNLOAD_URL = 'https://mods-storage.re146.dev';
 
-async function downloadMod(name: string, version: string) {
+async function downloadMod(
+	name: string,
+	version: string,
+	onProgress?: (percentage: number, downloaded: number, total: number) => void
+) {
 	return new Promise<void>((resolve, reject) => {
-		https
-			.get(`${DOWNLOADURL}/${name}/${version}.zip`, response => {
-				const code = response.statusCode ?? 0;
-				if (code >= 400) {
-					reject(new Error(response.statusMessage));
-				}
-				const fileWriter = fs.createWriteStream(MODTEMP + 'mod.zip').on('finish', () => {
-					clearInterval(interval);
-					ConsoleInteractions.clearLine();
-					resolve();
-				});
+		get(`${DOWNLOAD_URL}/${name}/${version}.zip`, response => {
+			const code = response.statusCode ?? 0;
+			if (code >= 400) reject(new Error(response.statusMessage));
+
+			const fileWriter = fs
+				.createWriteStream(MOD_TEMP_DIR + name + '.zip')
+				.on('finish', resolve)
+				.on('error', reject);
+			response.pipe(fileWriter);
+
+			if (onProgress) {
 				const fileSize = parseInt(response.headers['content-length'] as string, 10);
-				const downloadSize = fileWriter.bytesWritten;
-				const percentage = parseFloat(((downloadSize / fileSize) * 100).toFixed(2));
-				console.log(
-					`${ConsoleInteractions.ProgressBar((percentage / 10).toFixed(0))} ${percentage.toString()}%`
-				);
-				const interval = setInterval(() => {
-					const actualPercentage = parseFloat(((fileWriter.bytesWritten / fileSize) * 100).toFixed(2));
-					ConsoleInteractions.clearLine();
-					console.log(
-						`${ConsoleInteractions.ProgressBar(
-							(actualPercentage / 5).toFixed(0)
-						)} ${actualPercentage.toString()}%`
-					);
-				}, 50);
-				response.pipe(fileWriter);
-			})
-			.on('error', error => {
-				reject(error);
-			});
+				let downloadedSize = 0;
+				let lastUpdate = 0;
+
+				response.on('data', (chunk: Buffer) => {
+					downloadedSize += chunk.length;
+					const now = Date.now();
+					const percent = Math.min(Math.round((downloadedSize / fileSize) * 100), 100);
+					if (now - lastUpdate < 100) return;
+					lastUpdate = now;
+					if (!Number.isNaN(percent)) onProgress(percent, downloadedSize, fileSize);
+				});
+			}
+		}).on('error', reject);
 	});
+}
+
+function parseMod(name: string, data: any) {
+	try {
+		const title = data.title;
+
+		const version = data.releases[data.releases.length - 1].version;
+		const author = data.owner;
+
+		if ([title, author, version].includes(undefined)) {
+			return undefined;
+		}
+
+		const description = data.summary ?? undefined;
+		const changes = (data.changelog as string)
+			.replaceAll('\r\n', '\n')
+			.split(
+				'---------------------------------------------------------------------------------------------------\n'
+			)
+			.filter(v => v !== '');
+		const changelog = changes.map(v => ({
+			version: v.substring(9).split('\n')[0],
+			description: v.split('\n').slice(2).join('\n')
+		}));
+
+		const dependencies = data.releases[data.releases.length - 1]?.info_json?.dependencies ?? [];
+
+		const releases = (data.releases as Array<any>).map(r => ({
+			date: new Date(r.released_at),
+			version: r.version,
+			changelog: changelog.find(v => v.version == r.version)?.description ?? undefined
+		}));
+
+		return new OnlineMod(name, title, version, author, description, dependencies, releases);
+	} catch {
+		return undefined;
+	}
 }
 
 async function fetchMod(name: string) {
-	return new Promise<Mod>(async resolve => {
-		// @ts-ignore
-		const datas = (await axios.get(MODURL + name).catch(() => resolve(undefined)))?.data;
-		try {
-			const title = datas.title;
-			const version = datas.releases[datas.releases.length - 1].version;
-			const author = datas.owner;
-			const description = datas.summary ?? undefined;
-
-			if ([title, author, version].includes(undefined)) {
-				resolve(undefined);
-				return;
-			}
-
-			resolve(new Mod(name, title, version, author, [], description));
-		} catch {
-			resolve(undefined);
-		}
-	});
+	console.log('Fetch ' + name);
+	return parseMod(name, (await axios.get(MOD_URL + name + '/full'))?.data);
 }
 
-async function fetchMods(Mods: Array<string>) {
-	return new Promise<Array<Mod>>(async resolve => {
-		const requests = Mods.map(mod => {
-			return axios.get(MODURL + mod);
-		});
+async function fetchMods(
+	mods: Array<string>,
+	onProgress?: (completed: number, total: number) => void
+): Promise<Array<OnlineMod | undefined>> {
+	let completed = 0;
+	const total = mods.length;
 
-		axios
-			.all(requests)
-			.then(responses => {
-				const ModList = responses.map(response => {
-					const datas = response.data;
-					try {
-						const title = datas.title;
-						const version = datas.releases[datas.releases.length - 1].version;
-						const author = datas.owner;
-						const description = datas.summary.replace(/\n\s*\n/g, '\n').trim() ?? undefined;
-
-						if ([title, author, version].includes(undefined)) {
-							return;
-						}
-
-						return new Mod(datas?.name, title, version, author, [], description);
-					} catch {}
-				});
-				resolve(ModList);
-			})
-			.catch();
-	});
+	return Promise.all(mods.map(name => fetchMod(name).finally(() => onProgress?.(++completed, total))));
 }
 
 async function searchMod(search: string) {
-	return new Promise<Array<Mod>>(async resolve => {
-		const v = await axios.get(`${SEARCHURL}${search}`);
-		const $ = load(v.data);
+	return new Promise<Array<SearchMod> | undefined>(async resolve => {
+		const modList = new Array<SearchMod>();
+		try {
+			const v = await axios.get(SEARCH_URL + search);
+			const $ = load(v.data);
 
-		const modList: Array<Mod> = [];
+			$('.mod-list > div > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2)').each(
+				(_, el) => {
+					const htmlMod = $(el);
 
-		$('.mod-list > div > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2)').each(
-			(i, el) => {
-				const htmlMod = $(el);
+					const title = htmlMod.find('h2 > a').text().trim();
 
-				const title = htmlMod.find('h2 > a').text().trim();
+					const name = htmlMod.find('h2 > a').attr()?.href.slice(5).split('?')[0]!;
 
-				const name = htmlMod.find('h2 > a').attr().href.slice(5).split('?')[0];
+					const author = htmlMod.find('div > a').text().trim();
 
-				const author = htmlMod.find('div > a').text().trim();
+					const description = htmlMod
+						.find('p')
+						.text()
+						.replace(/\n\s*\n/g, '\n')
+						.trim();
 
-				const description = htmlMod
-					.find('p')
-					.text()
-					.replace(/\n\s*\n/g, '\n')
-					.trim();
-
-				modList.push(new Mod(name, title, 'Unknown', author, [], description));
-			}
-		);
+					modList.push(new SearchMod(decodeURIComponent(name), title, author, description));
+				}
+			);
+		} catch {
+			resolve(undefined);
+		}
 
 		resolve(modList);
 	});
@@ -137,7 +138,7 @@ async function searchMod(search: string) {
 async function checkInternet() {
 	console.log('Checking internet...');
 	return new Promise<boolean>(resolve => {
-		dns.lookup('google.com', err => {
+		dns.lookup('mods.factorio.com', err => {
 			ConsoleInteractions.clearLine();
 			resolve(err && err.code == 'ENOTFOUND' ? false : true);
 		});

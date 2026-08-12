@@ -1,14 +1,28 @@
+import { search } from '@inquirer/prompts';
 import chalk from 'chalk';
-import { existsSync } from 'fs';
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 
-import ConsoleInteractions from './Functions/ConsoleInteractions';
 import DataInteraction from './Functions/DataInteraction';
 import HighLevelActions from './Functions/HighLevelActions';
 import OnlineInteractions from './Functions/OnlineInteractions';
-import UserInteration from './Functions/UserInteraction';
+import UserInteraction from './Functions/UserInteraction';
+import exists from './Tools/exists';
 
 const APPV = '2.6.0';
+
+const doSearch = async (input: string, signal: AbortSignal, modsInstalled: string[]) => {
+	if (signal.aborted || input.length < 2) return [];
+	const mods = await OnlineInteractions.searchMod(input);
+	if (!mods) return undefined;
+	return Promise.all(
+		mods.map(async mod => ({
+			name: mod.title,
+			value: mod.name,
+			description: mod.description,
+			disabled: modsInstalled.includes(mod.name) ? '-- Already installed' : false
+		}))
+	);
+};
 
 async function Install() {
 	console.clear();
@@ -16,64 +30,56 @@ async function Install() {
 
 	if (!(await OnlineInteractions.checkInternet())) {
 		console.log(chalk.redBright('Please check your internet connection'));
-		UserInteration.GoBackToMenu();
+		UserInteraction.GoBackToMenu();
 		return;
 	}
 
-	let modName = await UserInteration.Prompt('What mod do you want to install?');
-	if (modName == '') {
-		UserInteration.GoBackToMenu();
-		return;
-	}
-	let mod = await OnlineInteractions.fetchMod(modName).catch(() => {
-		return;
+	const modsInstalled = await DataInteraction.Installed.getMods();
+
+	const modName = await search({
+		message: 'Search a mod to install',
+		source: async (input, { signal }) => {
+			if (!input) return [];
+			await new Promise(resolve => setTimeout(resolve, 300));
+			if (signal.aborted) return [];
+			return (await doSearch(input, signal, modsInstalled)) ?? [];
+		}
+	}).catch(err => {
+		if (err?.name !== 'ExitPromptError') console.error(chalk.red(err.message ?? 'An error occurred'));
 	});
-	if (typeof mod == 'undefined') {
-		console.log('Searching...');
-		const modList = (await OnlineInteractions.searchMod(modName)).map(v => {
-			return { name: v.title, value: v.name };
-		});
-		ConsoleInteractions.clearLine();
-		if (modList.length == 0) {
-			console.log(chalk.redBright('No matching mods found'));
-			UserInteration.GoBackToMenu();
-			return;
-		}
-		if (modList.length == 1) {
-			modName = modList[0].value;
-		} else {
-			modList.push({ name: chalk.redBright('Go back'), value: 'quit' });
-			modName = await UserInteration.Choices(modList.length - 1 + ' mods found:', modList);
-			if (modName == 'quit') return;
-		}
-		mod = await OnlineInteractions.fetchMod(modName);
-	}
-	if (DataInteraction.Installed.isInstalled(modName)) {
-		const LocalMod = DataInteraction.Installed.fetchMod(modName);
-		if (typeof LocalMod == 'undefined') {
-			UserInteration.GoBackToMenu();
-			return;
-		}
+
+	if (!modName) return;
+
+	const mod = await OnlineInteractions.fetchMod(modName).catch(err => {
+		console.error(chalk.red('Could not fetch mod:'), err);
+		return undefined;
+	});
+
+	console.log('');
+	if (!mod) return;
+
+	const LocalMod = await DataInteraction.Installed.getMod(mod.name);
+	if (LocalMod != undefined) {
 		LocalMod.print(mod.version);
 		if (mod.version != LocalMod.version) {
 			console.log('');
 			console.log(chalk.yellow('This mod is already installed but an update is available.'));
-			if (await UserInteration.Valid('Would you like to update it ?', true)) {
+			if (await UserInteraction.Valid('Would you like to update it ?', true)) {
 				console.log('');
 				await HighLevelActions.installMod(mod, 'update');
 			}
 		} else {
 			console.log(chalk.yellow('This mod is already installed'));
 		}
-		UserInteration.GoBackToMenu();
+		UserInteraction.GoBackToMenu();
 		return;
 	}
 	mod.print();
-	if (await UserInteration.Valid('Install it?')) {
+	if (await UserInteraction.Valid('Install it?')) {
 		console.log('');
 		await HighLevelActions.installMod(mod, 'install');
 	}
-	UserInteration.GoBackToMenu();
+	UserInteraction.GoBackToMenu();
 	return;
 }
 
@@ -81,85 +87,83 @@ async function Update() {
 	console.clear();
 	console.log(chalk.bgGray('Update mods') + '\n');
 
-	const List = DataInteraction.Installed.getList();
+	const mods = await DataInteraction.Installed.fetchMods();
 
-	if (List.length == 0) {
+	if (mods.length == 0) {
 		console.log(chalk.redBright('No mods found'));
-		UserInteration.GoBackToMenu();
+		UserInteraction.GoBackToMenu();
 		return;
 	}
 
 	if (!(await OnlineInteractions.checkInternet())) {
 		console.log(chalk.redBright('Please check your internet connection'));
-		UserInteration.GoBackToMenu();
+		UserInteraction.GoBackToMenu();
 		return;
 	}
 
-	await HighLevelActions.updateAllMods();
-	UserInteration.GoBackToMenu();
+	await HighLevelActions.updateAllMods(mods);
+	UserInteraction.GoBackToMenu();
 }
 
 async function Uninstall() {
 	console.clear();
 	console.log(chalk.bgGray('Uninstall mods') + '\n');
 
-	const List = DataInteraction.Installed.getList();
+	const mods = await DataInteraction.Installed.fetchMods();
 
-	if (List.length == 0) {
+	if (mods.length == 0) {
 		console.log(chalk.redBright('No mods found'));
-		UserInteration.GoBackToMenu();
+		UserInteraction.GoBackToMenu();
 		return;
 	}
 
-	const modList = DataInteraction.Installed.getMods();
+	const choices = mods.map(mod => ({
+		name: mod.title,
+		value: mod.name,
+		description: mod.description
+	}));
 
-	const choices = modList.map(mod => {
-		return { name: mod.title, value: mod.name };
-	});
+	const modName = await search({
+		message: 'Select a mod to uninstall',
+		source: async input => {
+			if (!input) {
+				return choices;
+			}
 
-	if (choices.length != 1) choices.unshift({ name: chalk.black(chalk.bgWhite('Every mods')), value: '*' });
-	choices.push({ name: chalk.redBright('Go back'), value: 'quit' });
-
-	const modName = await UserInteration.Choices('Which mod do you want to uninstall?', choices);
+			return choices.filter(mod => mod.name.toLowerCase().includes(input.toLowerCase()));
+		}
+	}).catch(() => undefined);
 	console.log('');
 
-	if (modName == '*') {
-		console.log(chalk.redBright('⚠️WARNING⚠️'));
-		if (await UserInteration.Valid('Do you want to remove ALL of your mods?', false)) {
-			console.log('');
-			modList.forEach(mod => {
-				HighLevelActions.uninstallMod(mod);
-			});
-		}
-	} else if (modName == 'quit') {
+	if (modName == undefined) {
 		return;
 	} else {
-		const mod = DataInteraction.Installed.fetchMod(modName);
+		const mod = await DataInteraction.Installed.getMod(modName);
 		if (typeof mod == 'undefined') {
-			UserInteration.GoBackToMenu();
+			UserInteraction.GoBackToMenu();
 			return;
 		}
 		mod.print();
 		console.log('');
 
-		if (await UserInteration.Valid('Do you want to uninstall it?')) {
+		if (await UserInteraction.Valid('Do you want to uninstall it?')) {
 			console.log('');
-			const dep = HighLevelActions.isModUnderDependency(mod);
+			const dep = await mod.isModUnderDependency();
 			if (typeof dep != 'undefined') {
 				console.log(chalk.redBright('⚠️WARNING⚠️'));
 				console.log('This mod is required for ' + chalk.bold(dep.title) + ' to work.');
-				if (await UserInteration.Valid('Do you want to uninstall it anyway?', false)) {
-					HighLevelActions.uninstallMod(mod);
+				if (await UserInteraction.Valid('Do you want to uninstall it anyway?', false)) {
+					console.log('');
+					await HighLevelActions.uninstallMod(mod);
 				}
 			} else {
-				HighLevelActions.uninstallMod(mod);
+				await HighLevelActions.uninstallMod(mod);
 			}
 		}
 	}
 
 	console.log('');
-	UserInteration.GoBackToMenu();
-	return;
+	UserInteraction.GoBackToMenu();
 }
 
 function About() {
@@ -167,7 +171,7 @@ function About() {
 	console.log(chalk.bgGray('Factorio Mod Updater') + '\n');
 	console.log('Maintained by ' + chalk.bold('Wiwok'));
 	console.log('Version: ' + chalk.underline(APPV));
-	UserInteration.GoBackToMenu();
+	UserInteraction.GoBackToMenu();
 }
 
 async function main() {
@@ -176,7 +180,7 @@ async function main() {
 		console.clear();
 		console.log(chalk.bgGray('Factorio Mod Updater') + '\n');
 
-		const nav = await UserInteration.Choices('What do you want to do ?', [
+		const nav = await UserInteraction.Choices('What do you want to do ?', [
 			{ name: 'Install', value: 'install' },
 			{ name: 'Update', value: 'update' },
 			{ name: 'Uninstall', value: 'uninstall' },
@@ -205,22 +209,22 @@ async function main() {
 	process.exit();
 }
 
-function Starting() {
+async function Starting() {
 	process.title = 'Factorio Mod Updater (v' + APPV + ')';
 	console.clear();
 
-	if (!DataInteraction.clearTemp()) {
+	if (!(await DataInteraction.clearTemp())) {
 		console.log(chalk.redBright('An error occurred.'));
 		console.log('Press enter to quit...');
-		UserInteration.Pause();
+		UserInteraction.Pause();
 		console.clear();
 		process.exit();
 	}
 
-	if (!existsSync(process.env.APPDATA + '/Factorio/mods/')) {
+	if (!(await exists(process.env.APPDATA + '/Factorio/mods/'))) {
 		console.log(chalk.redBright('Factorio mods folder not found.'));
 		console.log('Press enter to quit...');
-		UserInteration.Pause();
+		UserInteraction.Pause();
 		console.clear();
 		process.exit();
 	}
@@ -234,7 +238,7 @@ function Starting() {
 	server.on('error', () => {
 		console.log(chalk.redBright("Factorio Mod Updater is already running. Can't run more than one instance."));
 		console.log('Press enter to quit...');
-		UserInteration.Pause();
+		UserInteraction.Pause();
 		console.clear();
 		process.exit();
 	});
@@ -244,7 +248,7 @@ function Starting() {
 			if (!(await HighLevelActions.isGameRunning())) break;
 			console.log(chalk.redBright('Factorio is running. Please close the game to avoid file corruption.'));
 			console.log('Press enter to retry...');
-			UserInteration.Pause();
+			UserInteraction.Pause();
 			console.clear();
 		}
 		main();

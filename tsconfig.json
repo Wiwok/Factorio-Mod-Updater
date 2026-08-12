@@ -5,6 +5,8 @@
 		"moduleResolution": "nodenext",
 		"module": "nodenext",
 		"outDir": "build/code",
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"removeComments": true,
+		"types": ["bun"]
 	}
 }

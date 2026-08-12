@@ -1,54 +1,28 @@
-import inquirer from 'inquirer';
+import { confirm, select } from '@inquirer/prompts';
 import PromptSync from 'prompt-sync';
 
 const prompt = PromptSync();
 
 type Choice<T> = {
-	name: string;
 	value: T;
+	name?: string;
+	description?: string;
+	short?: string;
+	disabled?: boolean | string;
 };
 
-async function Prompt(message: string): Promise<string> {
-	return (
-		await inquirer.prompt({
-			name: 'prompt',
-			message: message,
-			type: 'input'
-		})
-	).prompt;
+async function Valid(message: string, Default: boolean = true) {
+	return confirm({
+		message: message,
+		default: Default
+	});
 }
 
-async function Valid(message: string, Default: boolean = true): Promise<boolean> {
-	return (
-		await inquirer.prompt({
-			name: 'valid',
-			message: message,
-			type: 'confirm',
-			default: Default
-		})
-	).valid;
-}
-
-async function Choices<T>(message: string, choices: Array<Choice<T>>): Promise<T> {
-	return (
-		await inquirer.prompt({
-			name: 'list',
-			message: message,
-			choices: choices,
-			type: 'list'
-		})
-	).list;
-}
-
-async function CheckBox<T>(message: string, choices: Array<Choice<T>>): Promise<Array<T>> {
-	return (
-		await inquirer.prompt({
-			name: 'checkBox',
-			message: message,
-			choices: choices,
-			type: 'checkbox'
-		})
-	).checkBox;
+async function Choices<T>(message: string, choices: Array<Choice<T>>) {
+	return select({
+		message: message,
+		choices: choices
+	});
 }
 
 function GoBackToMenu() {
@@ -60,5 +34,5 @@ function Pause() {
 	prompt('');
 }
 
-const UserInteration = { CheckBox, Choices, GoBackToMenu, Pause, Prompt, Valid };
-export default UserInteration;
+const UserInteraction = { Choices, GoBackToMenu, Pause, Valid };
+export default UserInteraction;
